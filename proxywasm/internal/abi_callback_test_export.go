@@ -20,11 +20,11 @@ import "github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 
 // this file exists only for proxytest package, therefore, these functions are not included in a resulting Wasm binary.
 
-func ProxyOnVMStart(pluginContextID uint32, vmConfigurationSize int) types.OnVMStartStatus {
+func ProxyOnVMStart(pluginContextID uint32, vmConfigurationSize int32) types.OnVMStartStatus {
 	return proxyOnVMStart(pluginContextID, vmConfigurationSize)
 }
 
-func ProxyOnConfigure(pluginContextID uint32, vmConfigurationSize int) types.OnPluginStartStatus {
+func ProxyOnConfigure(pluginContextID uint32, vmConfigurationSize int32) types.OnPluginStartStatus {
 	return proxyOnConfigure(pluginContextID, vmConfigurationSize)
 }
 
@@ -32,7 +32,7 @@ func ProxyOnNewConnection(contextID uint32) types.Action {
 	return proxyOnNewConnection(contextID)
 }
 
-func ProxyOnDownstreamData(contextID uint32, dataSize int, endOfStream bool) types.Action {
+func ProxyOnDownstreamData(contextID uint32, dataSize int32, endOfStream bool) types.Action {
 	return proxyOnDownstreamData(contextID, dataSize, endOfStream)
 }
 
@@ -40,7 +40,7 @@ func ProxyOnDownstreamConnectionClose(contextID uint32, pType types.PeerType) {
 	proxyOnDownstreamConnectionClose(contextID, pType)
 }
 
-func ProxyOnUpstreamData(contextID uint32, dataSize int, endOfStream bool) types.Action {
+func ProxyOnUpstreamData(contextID uint32, dataSize int32, endOfStream bool) types.Action {
 	return proxyOnUpstreamData(contextID, dataSize, endOfStream)
 }
 
@@ -48,31 +48,31 @@ func ProxyOnUpstreamConnectionClose(contextID uint32, pType types.PeerType) {
 	proxyOnUpstreamConnectionClose(contextID, pType)
 }
 
-func ProxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) types.Action {
+func ProxyOnRequestHeaders(contextID uint32, numHeaders int32, endOfStream bool) types.Action {
 	return proxyOnRequestHeaders(contextID, numHeaders, endOfStream)
 }
 
-func ProxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.Action {
+func ProxyOnRequestBody(contextID uint32, bodySize int32, endOfStream bool) types.Action {
 	return proxyOnRequestBody(contextID, bodySize, endOfStream)
 }
 
-func ProxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
+func ProxyOnRequestTrailers(contextID uint32, numTrailers int32) types.Action {
 	return proxyOnRequestTrailers(contextID, numTrailers)
 }
 
-func ProxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) types.Action {
+func ProxyOnResponseHeaders(contextID uint32, numHeaders int32, endOfStream bool) types.Action {
 	return proxyOnResponseHeaders(contextID, numHeaders, endOfStream)
 }
 
-func ProxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types.Action {
+func ProxyOnResponseBody(contextID uint32, bodySize int32, endOfStream bool) types.Action {
 	return proxyOnResponseBody(contextID, bodySize, endOfStream)
 }
 
-func ProxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
+func ProxyOnResponseTrailers(contextID uint32, numTrailers int32) types.Action {
 	return proxyOnResponseTrailers(contextID, numTrailers)
 }
 
-func ProxyOnHttpCallResponse(pluginContextID, calloutID uint32, numHeaders, bodySize, numTrailers int) {
+func ProxyOnHttpCallResponse(pluginContextID, calloutID uint32, numHeaders, bodySize, numTrailers int32) {
 	proxyOnHttpCallResponse(pluginContextID, calloutID, numHeaders, bodySize, numTrailers)
 }
 

@@ -20,16 +20,16 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-//export proxy_on_vm_start
-func proxyOnVMStart(_ uint32, vmConfigurationSize int) types.OnVMStartStatus {
+//go:wasmexport proxy_on_vm_start
+func proxyOnVMStart(_ uint32, vmConfigurationSize int32) types.OnVMStartStatus {
 	if recordTiming {
 		defer logTiming("proxyOnVMStart", time.Now())
 	}
-	return currentState.vmContext.OnVMStart(vmConfigurationSize)
+	return currentState.vmContext.OnVMStart(int(vmConfigurationSize))
 }
 
-//export proxy_on_configure
-func proxyOnConfigure(pluginContextID uint32, pluginConfigurationSize int) types.OnPluginStartStatus {
+//go:wasmexport proxy_on_configure
+func proxyOnConfigure(pluginContextID uint32, pluginConfigurationSize int32) types.OnPluginStartStatus {
 	if recordTiming {
 		defer logTiming("proxyOnConfigure", time.Now())
 	}
@@ -38,5 +38,5 @@ func proxyOnConfigure(pluginContextID uint32, pluginConfigurationSize int) types
 		panic("invalid context on proxy_on_configure")
 	}
 	currentState.setActiveContextID(pluginContextID)
-	return ctx.context.OnPluginStart(pluginConfigurationSize)
+	return ctx.context.OnPluginStart(int(pluginConfigurationSize))
 }

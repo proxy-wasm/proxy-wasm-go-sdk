@@ -20,8 +20,8 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-//export proxy_on_request_headers
-func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) types.Action {
+//go:wasmexport proxy_on_request_headers
+func proxyOnRequestHeaders(contextID uint32, numHeaders int32, endOfStream bool) types.Action {
 	if recordTiming {
 		defer logTiming("proxyOnRequestHeaders", time.Now())
 	}
@@ -31,11 +31,11 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 	}
 
 	currentState.setActiveContextID(contextID)
-	return ctx.OnHttpRequestHeaders(numHeaders, endOfStream)
+	return ctx.OnHttpRequestHeaders(int(numHeaders), endOfStream)
 }
 
-//export proxy_on_request_body
-func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.Action {
+//go:wasmexport proxy_on_request_body
+func proxyOnRequestBody(contextID uint32, bodySize int32, endOfStream bool) types.Action {
 	if recordTiming {
 		defer logTiming("proxyOnRequestBody", time.Now())
 	}
@@ -44,11 +44,11 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 		panic("invalid context on proxy_on_request_body")
 	}
 	currentState.setActiveContextID(contextID)
-	return ctx.OnHttpRequestBody(bodySize, endOfStream)
+	return ctx.OnHttpRequestBody(int(bodySize), endOfStream)
 }
 
-//export proxy_on_request_trailers
-func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
+//go:wasmexport proxy_on_request_trailers
+func proxyOnRequestTrailers(contextID uint32, numTrailers int32) types.Action {
 	if recordTiming {
 		defer logTiming("proxyOnRequestTrailers", time.Now())
 	}
@@ -57,11 +57,11 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 		panic("invalid context on proxy_on_request_trailers")
 	}
 	currentState.setActiveContextID(contextID)
-	return ctx.OnHttpRequestTrailers(numTrailers)
+	return ctx.OnHttpRequestTrailers(int(numTrailers))
 }
 
-//export proxy_on_response_headers
-func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) types.Action {
+//go:wasmexport proxy_on_response_headers
+func proxyOnResponseHeaders(contextID uint32, numHeaders int32, endOfStream bool) types.Action {
 	if recordTiming {
 		defer logTiming("proxyOnResponseHeaders", time.Now())
 	}
@@ -70,11 +70,11 @@ func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) 
 		panic("invalid context id on proxy_on_response_headers")
 	}
 	currentState.setActiveContextID(contextID)
-	return ctx.OnHttpResponseHeaders(numHeaders, endOfStream)
+	return ctx.OnHttpResponseHeaders(int(numHeaders), endOfStream)
 }
 
-//export proxy_on_response_body
-func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types.Action {
+//go:wasmexport proxy_on_response_body
+func proxyOnResponseBody(contextID uint32, bodySize int32, endOfStream bool) types.Action {
 	if recordTiming {
 		defer logTiming("proxyOnResponseBody", time.Now())
 	}
@@ -83,11 +83,11 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 		panic("invalid context id on proxy_on_response_headers")
 	}
 	currentState.setActiveContextID(contextID)
-	return ctx.OnHttpResponseBody(bodySize, endOfStream)
+	return ctx.OnHttpResponseBody(int(bodySize), endOfStream)
 }
 
-//export proxy_on_response_trailers
-func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
+//go:wasmexport proxy_on_response_trailers
+func proxyOnResponseTrailers(contextID uint32, numTrailers int32) types.Action {
 	if recordTiming {
 		defer logTiming("proxyOnResponseTrailers", time.Now())
 	}
@@ -96,11 +96,11 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 		panic("invalid context id on proxy_on_response_headers")
 	}
 	currentState.setActiveContextID(contextID)
-	return ctx.OnHttpResponseTrailers(numTrailers)
+	return ctx.OnHttpResponseTrailers(int(numTrailers))
 }
 
-//export proxy_on_http_call_response
-func proxyOnHttpCallResponse(pluginContextID, calloutID uint32, numHeaders, bodySize, numTrailers int) {
+//go:wasmexport proxy_on_http_call_response
+func proxyOnHttpCallResponse(pluginContextID, calloutID uint32, numHeaders, bodySize, numTrailers int32) {
 	if recordTiming {
 		defer logTiming("proxyOnHttpCallResponse", time.Now())
 	}
@@ -126,6 +126,6 @@ func proxyOnHttpCallResponse(pluginContextID, calloutID uint32, numHeaders, body
 	// for already-deleted context id. See https://github.com/tetratelabs/proxy-wasm-go-sdk/issues/261 for detail.
 	if _, ok := currentState.contextIDToRootID[ctxID]; ok {
 		ProxySetEffectiveContext(ctxID)
-		cb.callback(numHeaders, bodySize, numTrailers)
+		cb.callback(int(numHeaders), int(bodySize), int(numTrailers))
 	}
 }

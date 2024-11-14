@@ -23,20 +23,20 @@ import (
 	"unsafe"
 )
 
-func RawBytePtrToString(raw *byte, size int) string {
+func RawBytePtrToString(raw *byte, size int32) string {
 	//nolint
 	return *(*string)(unsafe.Pointer(&reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(raw)),
-		Len:  size,
-		Cap:  size,
+		Len:  int(size),
+		Cap:  int(size),
 	}))
 }
 
-func RawBytePtrToByteSlice(raw *byte, size int) []byte {
+func RawBytePtrToByteSlice(raw *byte, size int32) []byte {
 	//nolint
 	return *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(raw)),
-		Len:  size,
-		Cap:  size,
+		Len:  int(size),
+		Cap:  int(size),
 	}))
 }

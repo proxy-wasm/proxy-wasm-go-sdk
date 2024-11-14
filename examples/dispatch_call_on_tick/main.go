@@ -23,7 +23,8 @@ import (
 
 const tickMilliseconds uint32 = 100
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 

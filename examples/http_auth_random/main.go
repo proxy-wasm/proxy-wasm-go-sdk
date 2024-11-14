@@ -23,7 +23,8 @@ import (
 
 const clusterName = "httpbin"
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 

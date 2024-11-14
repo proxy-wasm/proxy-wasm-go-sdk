@@ -21,7 +21,8 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 

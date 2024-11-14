@@ -29,7 +29,7 @@ type logHost struct {
 	expLogLevel internal.LogLevel
 }
 
-func (l logHost) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int) internal.Status {
+func (l logHost) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int32) internal.Status {
 	actual := internal.RawBytePtrToString(messageData, messageSize)
 	require.Equal(l.t, l.expMessage, actual)
 	require.Equal(l.t, l.expLogLevel, logLevel)
@@ -186,7 +186,7 @@ type metricProxyWasmHost struct {
 }
 
 func (m metricProxyWasmHost) ProxyDefineMetric(metricType internal.MetricType,
-	metricNameData *byte, metricNameSize int, returnMetricIDPtr *uint32) internal.Status {
+	metricNameData *byte, metricNameSize int32, returnMetricIDPtr *uint32) internal.Status {
 	name := internal.RawBytePtrToString(metricNameData, metricNameSize)
 	id, ok := m.nameToID[name]
 	if !ok {

@@ -26,7 +26,8 @@ const (
 	sharedDataKey = "shared_data_key"
 )
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 

@@ -25,7 +25,8 @@ import (
 
 const receiverVMID = "receiver"
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 

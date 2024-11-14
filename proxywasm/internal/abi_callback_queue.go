@@ -16,7 +16,7 @@ package internal
 
 import "time"
 
-//export proxy_on_queue_ready
+//go:wasmexport proxy_on_queue_ready
 func proxyOnQueueReady(contextID, queueID uint32) {
 	if recordTiming {
 		defer logTiming("proxyOnQueueReady", time.Now())

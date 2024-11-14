@@ -16,6 +16,7 @@ package proxytest
 
 import (
 	"log"
+	"unsafe"
 
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/internal"
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
@@ -38,8 +39,8 @@ func newNetworkHostEmulator() *networkHostEmulator {
 }
 
 // impl internal.ProxyWasmHost: delegated from hostEmulator
-func (n *networkHostEmulator) networkHostEmulatorProxyGetBufferBytes(bt internal.BufferType, start int, maxSize int,
-	returnBufferData **byte, returnBufferSize *int) internal.Status {
+func (n *networkHostEmulator) networkHostEmulatorProxyGetBufferBytes(bt internal.BufferType, start int32, maxSize int32,
+	returnBufferData unsafe.Pointer, returnBufferSize *int32) internal.Status {
 
 	active := internal.VMStateGetActiveContextID()
 	stream := n.streamStates[active]
@@ -53,16 +54,17 @@ func (n *networkHostEmulator) networkHostEmulatorProxyGetBufferBytes(bt internal
 		panic("unreachable: maybe a bug in this host emulation or SDK")
 	}
 
-	if len(buf) == 0 {
+	bl := int32(len(buf))
+	if bl == 0 {
 		return internal.StatusNotFound
-	} else if start >= len(buf) {
+	} else if start >= bl {
 		log.Printf("start index out of range: %d (start) >= %d ", start, len(buf))
 		return internal.StatusBadArgument
 	}
 
-	*returnBufferData = &buf[start]
-	if maxSize > len(buf)-start {
-		*returnBufferSize = len(buf) - start
+	*(**byte)(returnBufferData) = &buf[start]
+	if maxSize > bl-start {
+		*returnBufferSize = bl - start
 	} else {
 		*returnBufferSize = maxSize
 	}
@@ -80,7 +82,7 @@ func (n *networkHostEmulator) CallOnUpstreamData(contextID uint32, data []byte) 
 		stream.upstream = append(stream.upstream, data...)
 	}
 
-	action := internal.ProxyOnUpstreamData(contextID, len(stream.upstream), false)
+	action := internal.ProxyOnUpstreamData(contextID, int32(len(stream.upstream)), false)
 	switch action {
 	case types.ActionPause:
 	case types.ActionContinue:
@@ -101,7 +103,7 @@ func (n *networkHostEmulator) CallOnDownstreamData(contextID uint32, data []byte
 		stream.downstream = append(stream.downstream, data...)
 	}
 
-	action := internal.ProxyOnDownstreamData(contextID, len(stream.downstream), false)
+	action := internal.ProxyOnDownstreamData(contextID, int32(len(stream.downstream)), false)
 	switch action {
 	case types.ActionPause:
 	case types.ActionContinue:

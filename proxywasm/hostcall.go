@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"unsafe"
 
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/internal"
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
@@ -55,7 +56,7 @@ func SetEffectiveContext(contextID uint32) error {
 // That means you can use "vm_id" to separate shared queue namespace.
 func RegisterSharedQueue(name string) (queueID uint32, err error) {
 	ptr := internal.StringBytePtr(name)
-	st := internal.ProxyRegisterSharedQueue(ptr, len(name), &queueID)
+	st := internal.ProxyRegisterSharedQueue(ptr, int32(len(name)), &queueID)
 	return queueID, internal.StatusToError(st)
 }
 
@@ -64,22 +65,22 @@ func RegisterSharedQueue(name string) (queueID uint32, err error) {
 func ResolveSharedQueue(vmID, queueName string) (queueID uint32, err error) {
 	var ret uint32
 	st := internal.ProxyResolveSharedQueue(internal.StringBytePtr(vmID),
-		len(vmID), internal.StringBytePtr(queueName), len(queueName), &ret)
+		int32(len(vmID)), internal.StringBytePtr(queueName), int32(len(queueName)), &ret)
 	return ret, internal.StatusToError(st)
 }
 
 // EnqueueSharedQueue enqueues data to the shared queue of the given queueID.
 // In order to get queue id for a target queue, use "ResolveSharedQueue" first.
 func EnqueueSharedQueue(queueID uint32, data []byte) error {
-	return internal.StatusToError(internal.ProxyEnqueueSharedQueue(queueID, &data[0], len(data)))
+	return internal.StatusToError(internal.ProxyEnqueueSharedQueue(queueID, &data[0], int32(len(data))))
 }
 
 // DequeueSharedQueue dequeues data from the shared queue of the given queueID.
 // In order to get queue id for a target queue, use "ResolveSharedQueue" first.
 func DequeueSharedQueue(queueID uint32) ([]byte, error) {
 	var raw *byte
-	var size int
-	st := internal.ProxyDequeueSharedQueue(queueID, &raw, &size)
+	var size int32
+	st := internal.ProxyDequeueSharedQueue(queueID, unsafe.Pointer(&raw), &size)
 	if st != internal.StatusOK {
 		return nil, internal.StatusToError(st)
 	}
@@ -108,11 +109,11 @@ func DispatchHttpCall(
 ) (calloutID uint32, err error) {
 	shs := internal.SerializeMap(headers)
 	hp := &shs[0]
-	hl := len(shs)
+	hl := int32(len(shs))
 
 	sts := internal.SerializeMap(trailers)
 	tp := &sts[0]
-	tl := len(sts)
+	tl := int32(len(sts))
 
 	var bodyPtr *byte
 	if len(body) > 0 {
@@ -120,8 +121,8 @@ func DispatchHttpCall(
 	}
 
 	u := internal.StringBytePtr(cluster)
-	switch st := internal.ProxyHttpCall(u, len(cluster),
-		hp, hl, bodyPtr, len(body), tp, tl, timeoutMillisecond, &calloutID); st {
+	switch st := internal.ProxyHttpCall(u, int32(len(cluster)),
+		hp, hl, bodyPtr, int32(len(body)), tp, tl, timeoutMillisecond, &calloutID); st {
 	case internal.StatusOK:
 		internal.RegisterHttpCallout(calloutID, callBack)
 		return calloutID, nil
@@ -492,11 +493,11 @@ func SendHttpResponse(statusCode uint32, headers [][2]string, body []byte, gRPCS
 		bp = &body[0]
 	}
 	hp := &shs[0]
-	hl := len(shs)
+	hl := int32(len(shs))
 	return internal.StatusToError(
 		internal.ProxySendLocalResponse(
 			statusCode, nil, 0,
-			bp, len(body), hp, hl, gRPCStatus,
+			bp, int32(len(body)), hp, hl, gRPCStatus,
 		),
 	)
 }
@@ -506,9 +507,9 @@ func SendHttpResponse(statusCode uint32, headers [][2]string, body []byte, gRPCS
 // when calling SetSharedData for the same key.
 func GetSharedData(key string) (value []byte, cas uint32, err error) {
 	var raw *byte
-	var size int
+	var size int32
 
-	st := internal.ProxyGetSharedData(internal.StringBytePtr(key), len(key), &raw, &size, &cas)
+	st := internal.ProxyGetSharedData(internal.StringBytePtr(key), int32(len(key)), unsafe.Pointer(&raw), &size, &cas)
 	if st != internal.StatusOK {
 		return nil, 0, internal.StatusToError(st)
 	}
@@ -530,7 +531,7 @@ func SetSharedData(key string, data []byte, cas uint32) error {
 	if len(data) > 0 { // Empty data is allowed to set, so we need this check.
 		dataPtr = &data[0]
 	}
-	st := internal.ProxySetSharedData(internal.StringBytePtr(key), len(key), dataPtr, len(data), cas)
+	st := internal.ProxySetSharedData(internal.StringBytePtr(key), int32(len(key)), dataPtr, int32(len(data)), cas)
 	return internal.StatusToError(st)
 }
 
@@ -564,10 +565,10 @@ func GetProperty(path []string) ([]byte, error) {
 		return nil, errors.New("path must not be empty")
 	}
 	var ret *byte
-	var retSize int
+	var retSize int32
 	raw := internal.SerializePropertyPath(path)
 
-	err := internal.StatusToError(internal.ProxyGetProperty(&raw[0], len(raw), &ret, &retSize))
+	err := internal.StatusToError(internal.ProxyGetProperty(&raw[0], int32(len(raw)), unsafe.Pointer(&ret), &retSize))
 	if err != nil {
 		return nil, err
 	}
@@ -600,7 +601,7 @@ func SetProperty(path []string, data []byte) error {
 	}
 	raw := internal.SerializePropertyPath(path)
 	return internal.StatusToError(internal.ProxySetProperty(
-		&raw[0], len(raw), &data[0], len(data),
+		&raw[0], int32(len(raw)), &data[0], int32(len(data)),
 	))
 }
 
@@ -610,14 +611,14 @@ func CallForeignFunction(funcName string, param []byte) (ret []byte, err error) 
 	f := internal.StringBytePtr(funcName)
 
 	var returnData *byte
-	var returnSize int
+	var returnSize int32
 
 	var paramPtr *byte
 	if len(param) != 0 {
 		paramPtr = &param[0]
 	}
 
-	switch st := internal.ProxyCallForeignFunction(f, len(funcName), paramPtr, len(param), &returnData, &returnSize); st {
+	switch st := internal.ProxyCallForeignFunction(f, int32(len(funcName)), paramPtr, int32(len(param)), unsafe.Pointer(&returnData), &returnSize); st {
 	case internal.StatusOK:
 		return internal.RawBytePtrToByteSlice(returnData, returnSize), nil
 	default:
@@ -627,7 +628,7 @@ func CallForeignFunction(funcName string, param []byte) (ret []byte, err error) 
 
 // LogTrace emits a message as a log with Trace log level.
 func LogTrace(msg string) {
-	internal.ProxyLog(internal.LogLevelTrace, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelTrace, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogTracef formats according to a format specifier and emits as a log with Trace log level.
@@ -638,12 +639,12 @@ func LogTrace(msg string) {
 // information.
 func LogTracef(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	internal.ProxyLog(internal.LogLevelTrace, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelTrace, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogDebug emits a message as a log with Debug log level.
 func LogDebug(msg string) {
-	internal.ProxyLog(internal.LogLevelDebug, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelDebug, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogDebugf formats according to a format specifier and emits as a log with Debug log level.
@@ -654,12 +655,12 @@ func LogDebug(msg string) {
 // information.
 func LogDebugf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	internal.ProxyLog(internal.LogLevelDebug, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelDebug, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogInfo emits a message as a log with Info log level.
 func LogInfo(msg string) {
-	internal.ProxyLog(internal.LogLevelInfo, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelInfo, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogInfof formats according to a format specifier and emits as a log with Info log level.
@@ -670,12 +671,12 @@ func LogInfo(msg string) {
 // information.
 func LogInfof(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	internal.ProxyLog(internal.LogLevelInfo, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelInfo, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogWarn emits a message as a log with Warn log level.
 func LogWarn(msg string) {
-	internal.ProxyLog(internal.LogLevelWarn, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelWarn, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogWarnf formats according to a format specifier and emits as a log with Warn log level.
@@ -686,12 +687,12 @@ func LogWarn(msg string) {
 // information.
 func LogWarnf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	internal.ProxyLog(internal.LogLevelWarn, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelWarn, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogError emits a message as a log with Error log level.
 func LogError(msg string) {
-	internal.ProxyLog(internal.LogLevelError, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelError, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogErrorf formats according to a format specifier and emits as a log with Error log level.
@@ -702,12 +703,12 @@ func LogError(msg string) {
 // information.
 func LogErrorf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	internal.ProxyLog(internal.LogLevelError, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelError, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogCritical emits a message as a log with Critical log level.
 func LogCritical(msg string) {
-	internal.ProxyLog(internal.LogLevelCritical, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelCritical, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 // LogCriticalf formats according to a format specifier and emits as a log with Critical log level.
@@ -718,7 +719,7 @@ func LogCritical(msg string) {
 // information.
 func LogCriticalf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	internal.ProxyLog(internal.LogLevelCritical, internal.StringBytePtr(msg), len(msg))
+	internal.ProxyLog(internal.LogLevelCritical, internal.StringBytePtr(msg), int32(len(msg)))
 }
 
 type (
@@ -737,7 +738,7 @@ type (
 func DefineCounterMetric(name string) MetricCounter {
 	var id uint32
 	ptr := internal.StringBytePtr(name)
-	st := internal.ProxyDefineMetric(internal.MetricTypeCounter, ptr, len(name), &id)
+	st := internal.ProxyDefineMetric(internal.MetricTypeCounter, ptr, int32(len(name)), &id)
 	if err := internal.StatusToError(st); err != nil {
 		panic(fmt.Sprintf("define metric of name %s: %v", name, internal.StatusToError(st)))
 	}
@@ -765,7 +766,7 @@ func (m MetricCounter) Increment(offset uint64) {
 func DefineGaugeMetric(name string) MetricGauge {
 	var id uint32
 	ptr := internal.StringBytePtr(name)
-	st := internal.ProxyDefineMetric(internal.MetricTypeGauge, ptr, len(name), &id)
+	st := internal.ProxyDefineMetric(internal.MetricTypeGauge, ptr, int32(len(name)), &id)
 	if err := internal.StatusToError(st); err != nil {
 		panic(fmt.Sprintf("error define metric of name %s: %v", name, internal.StatusToError(st)))
 	}
@@ -792,7 +793,7 @@ func (m MetricGauge) Add(offset int64) {
 func DefineHistogramMetric(name string) MetricHistogram {
 	var id uint32
 	ptr := internal.StringBytePtr(name)
-	st := internal.ProxyDefineMetric(internal.MetricTypeHistogram, ptr, len(name), &id)
+	st := internal.ProxyDefineMetric(internal.MetricTypeHistogram, ptr, int32(len(name)), &id)
 	if err := internal.StatusToError(st); err != nil {
 		panic(fmt.Sprintf("error define metric of name %s: %v", name, internal.StatusToError(st)))
 	}
@@ -819,15 +820,15 @@ func (m MetricHistogram) Record(value uint64) {
 func setMap(mapType internal.MapType, headers [][2]string) error {
 	shs := internal.SerializeMap(headers)
 	hp := &shs[0]
-	hl := len(shs)
+	hl := int32(len(shs))
 	return internal.StatusToError(internal.ProxySetHeaderMapPairs(mapType, hp, hl))
 }
 
 func getMapValue(mapType internal.MapType, key string) (string, error) {
-	var rvs int
+	var rvs int32
 	var raw *byte
 	if st := internal.ProxyGetHeaderMapValue(
-		mapType, internal.StringBytePtr(key), len(key), &raw, &rvs,
+		mapType, internal.StringBytePtr(key), int32(len(key)), unsafe.Pointer(&raw), &rvs,
 	); st != internal.StatusOK {
 		return "", internal.StatusToError(st)
 	}
@@ -838,14 +839,14 @@ func getMapValue(mapType internal.MapType, key string) (string, error) {
 
 func removeMapValue(mapType internal.MapType, key string) error {
 	return internal.StatusToError(
-		internal.ProxyRemoveHeaderMapValue(mapType, internal.StringBytePtr(key), len(key)),
+		internal.ProxyRemoveHeaderMapValue(mapType, internal.StringBytePtr(key), int32(len(key))),
 	)
 }
 
 func replaceMapValue(mapType internal.MapType, key, value string) error {
 	return internal.StatusToError(
 		internal.ProxyReplaceHeaderMapValue(
-			mapType, internal.StringBytePtr(key), len(key), internal.StringBytePtr(value), len(value),
+			mapType, internal.StringBytePtr(key), int32(len(key)), internal.StringBytePtr(value), int32(len(value)),
 		),
 	)
 }
@@ -853,16 +854,16 @@ func replaceMapValue(mapType internal.MapType, key, value string) error {
 func addMapValue(mapType internal.MapType, key, value string) error {
 	return internal.StatusToError(
 		internal.ProxyAddHeaderMapValue(
-			mapType, internal.StringBytePtr(key), len(key), internal.StringBytePtr(value), len(value),
+			mapType, internal.StringBytePtr(key), int32(len(key)), internal.StringBytePtr(value), int32(len(value)),
 		),
 	)
 }
 
 func getMap(mapType internal.MapType) ([][2]string, error) {
-	var rvs int
+	var rvs int32
 	var raw *byte
 
-	st := internal.ProxyGetHeaderMapPairs(mapType, &raw, &rvs)
+	st := internal.ProxyGetHeaderMapPairs(mapType, unsafe.Pointer(&raw), &rvs)
 	if st != internal.StatusOK {
 		return nil, internal.StatusToError(st)
 	} else if raw == nil {
@@ -875,8 +876,8 @@ func getMap(mapType internal.MapType) ([][2]string, error) {
 
 func getBuffer(bufType internal.BufferType, start, maxSize int) ([]byte, error) {
 	var retData *byte
-	var retSize int
-	switch st := internal.ProxyGetBufferBytes(bufType, start, maxSize, &retData, &retSize); st {
+	var retSize int32
+	switch st := internal.ProxyGetBufferBytes(bufType, int32(start), int32(maxSize), unsafe.Pointer(&retData), &retSize); st {
 	case internal.StatusOK:
 		if retData == nil {
 			return nil, types.ErrorStatusNotFound
@@ -892,7 +893,7 @@ func appendToBuffer(bufType internal.BufferType, buffer []byte) error {
 	if len(buffer) != 0 {
 		bufferData = &buffer[0]
 	}
-	return internal.StatusToError(internal.ProxySetBufferBytes(bufType, math.MaxInt32, 0, bufferData, len(buffer)))
+	return internal.StatusToError(internal.ProxySetBufferBytes(bufType, math.MaxInt32, 0, bufferData, int32(len(buffer))))
 }
 
 func prependToBuffer(bufType internal.BufferType, buffer []byte) error {
@@ -900,7 +901,7 @@ func prependToBuffer(bufType internal.BufferType, buffer []byte) error {
 	if len(buffer) != 0 {
 		bufferData = &buffer[0]
 	}
-	return internal.StatusToError(internal.ProxySetBufferBytes(bufType, 0, 0, bufferData, len(buffer)))
+	return internal.StatusToError(internal.ProxySetBufferBytes(bufType, 0, 0, bufferData, int32(len(buffer))))
 }
 
 func replaceBuffer(bufType internal.BufferType, buffer []byte) error {
@@ -909,6 +910,6 @@ func replaceBuffer(bufType internal.BufferType, buffer []byte) error {
 		bufferData = &buffer[0]
 	}
 	return internal.StatusToError(
-		internal.ProxySetBufferBytes(bufType, 0, math.MaxInt32, bufferData, len(buffer)),
+		internal.ProxySetBufferBytes(bufType, 0, math.MaxInt32, bufferData, int32(len(buffer))),
 	)
 }

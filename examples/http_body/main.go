@@ -25,7 +25,8 @@ const (
 	bufferOperationReplace = "replace"
 )
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 
