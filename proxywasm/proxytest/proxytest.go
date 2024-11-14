@@ -190,7 +190,7 @@ func cloneWithLowerCaseMapKeys(m [][2]string) [][2]string {
 }
 
 func deserializeRawBytePtrToMap(aw *byte, size int32) [][2]string {
-	m := internal.DeserializeMap(internal.RawBytePtrToByteSlice(aw, size))
+	m := internal.DeserializeMap(unsafe.Slice(aw, size))
 	for _, entry := range m {
 		entry[0] = strings.ToLower(entry[0])
 	}
@@ -270,15 +270,15 @@ func (h *hostEmulator) ProxySetEffectiveContext(contextID uint32) internal.Statu
 
 // impl internal.ProxyWasmHost
 func (h *hostEmulator) ProxySetProperty(pathPtr *byte, pathSize int32, dataPtr *byte, dataSize int32) internal.Status {
-	path := internal.RawBytePtrToString(pathPtr, pathSize)
-	data := internal.RawBytePtrToByteSlice(dataPtr, dataSize)
+	path := unsafe.String(pathPtr, pathSize)
+	data := unsafe.Slice(dataPtr, dataSize)
 	h.properties[path] = data
 	return internal.StatusOK
 }
 
 // impl internal.ProxyWasmHost
 func (h *hostEmulator) ProxyGetProperty(pathPtr *byte, pathSize int32, dataPtrPtr unsafe.Pointer, dataSizePtr *int32) internal.Status {
-	path := internal.RawBytePtrToString(pathPtr, pathSize)
+	path := unsafe.String(pathPtr, pathSize)
 	if _, ok := h.properties[path]; !ok {
 		return internal.StatusNotFound
 	}

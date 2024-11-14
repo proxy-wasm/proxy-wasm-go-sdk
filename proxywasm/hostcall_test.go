@@ -16,6 +16,7 @@ package proxywasm
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 
@@ -30,7 +31,7 @@ type logHost struct {
 }
 
 func (l logHost) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int32) internal.Status {
-	actual := internal.RawBytePtrToString(messageData, messageSize)
+	actual := unsafe.String(messageData, messageSize)
 	require.Equal(l.t, l.expMessage, actual)
 	require.Equal(l.t, l.expLogLevel, logLevel)
 	return internal.StatusOK
@@ -187,7 +188,7 @@ type metricProxyWasmHost struct {
 
 func (m metricProxyWasmHost) ProxyDefineMetric(metricType internal.MetricType,
 	metricNameData *byte, metricNameSize int32, returnMetricIDPtr *uint32) internal.Status {
-	name := internal.RawBytePtrToString(metricNameData, metricNameSize)
+	name := unsafe.String(metricNameData, metricNameSize)
 	id, ok := m.nameToID[name]
 	if !ok {
 		id = uint32(len(m.nameToID))

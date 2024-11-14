@@ -103,7 +103,7 @@ func (h *httpHostEmulator) httpHostEmulatorProxySetBufferBytes(bt internal.Buffe
 		panic("unreachable: maybe a bug in this host emulation or SDK")
 	}
 
-	body := internal.RawBytePtrToByteSlice(bufferData, int32(bufferSize))
+	body := unsafe.Slice(bufferData, int32(bufferSize))
 	if start == 0 {
 		if maxSize == 0 {
 			// Prepend
@@ -145,7 +145,7 @@ func (h *httpHostEmulator) httpHostEmulatorProxyGetHeaderMapValue(mapType intern
 		panic("unreachable: maybe a bug in this host emulation or SDK")
 	}
 
-	key := strings.ToLower(internal.RawBytePtrToString(keyData, keySize))
+	key := strings.ToLower(unsafe.String(keyData, keySize))
 
 	for _, h := range headers {
 		if h[0] == key {
@@ -170,8 +170,8 @@ func (h *httpHostEmulator) httpHostEmulatorProxyGetHeaderMapValue(mapType intern
 func (h *httpHostEmulator) ProxyAddHeaderMapValue(mapType internal.MapType, keyData *byte,
 	keySize int32, valueData *byte, valueSize int32) internal.Status {
 
-	key := internal.RawBytePtrToString(keyData, keySize)
-	value := internal.RawBytePtrToString(valueData, valueSize)
+	key := unsafe.String(keyData, keySize)
+	value := unsafe.String(valueData, valueSize)
 	active := internal.VMStateGetActiveContextID()
 	stream := h.httpStreams[active]
 
@@ -206,8 +206,8 @@ func addMapValue(base [][2]string, key, value string) [][2]string {
 // impl internal.ProxyWasmHost
 func (h *httpHostEmulator) ProxyReplaceHeaderMapValue(mapType internal.MapType, keyData *byte,
 	keySize int32, valueData *byte, valueSize int32) internal.Status {
-	key := internal.RawBytePtrToString(keyData, keySize)
-	value := internal.RawBytePtrToString(valueData, valueSize)
+	key := unsafe.String(keyData, keySize)
+	value := unsafe.String(valueData, valueSize)
 	active := internal.VMStateGetActiveContextID()
 	stream := h.httpStreams[active]
 
@@ -241,7 +241,7 @@ func replaceMapValue(base [][2]string, key, value string) [][2]string {
 
 // impl internal.ProxyWasmHost
 func (h *httpHostEmulator) ProxyRemoveHeaderMapValue(mapType internal.MapType, keyData *byte, keySize int32) internal.Status {
-	key := internal.RawBytePtrToString(keyData, keySize)
+	key := unsafe.String(keyData, keySize)
 	active := internal.VMStateGetActiveContextID()
 	stream := h.httpStreams[active]
 
@@ -344,8 +344,8 @@ func (h *httpHostEmulator) ProxySendLocalResponse(statusCode uint32,
 	stream := h.httpStreams[active]
 	stream.sentLocalResponse = &LocalHttpResponse{
 		StatusCode:       statusCode,
-		StatusCodeDetail: internal.RawBytePtrToString(statusCodeDetailData, statusCodeDetailsSize),
-		Data:             internal.RawBytePtrToByteSlice(bodyData, bodySize),
+		StatusCodeDetail: unsafe.String(statusCodeDetailData, statusCodeDetailsSize),
+		Data:             unsafe.Slice(bodyData, bodySize),
 		Headers:          deserializeRawBytePtrToMap(headersData, headersSize),
 		GRPCStatus:       grpcStatus,
 	}
@@ -517,7 +517,7 @@ func (h *httpHostEmulator) GetProperty(path []string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return internal.RawBytePtrToByteSlice(ret, retSize), nil
+	return unsafe.Slice(ret, retSize), nil
 }
 
 // impl HostEmulator

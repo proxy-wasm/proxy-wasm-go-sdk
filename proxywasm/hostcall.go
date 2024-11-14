@@ -84,7 +84,7 @@ func DequeueSharedQueue(queueID uint32) ([]byte, error) {
 	if st != internal.StatusOK {
 		return nil, internal.StatusToError(st)
 	}
-	return internal.RawBytePtrToByteSlice(raw, size), nil
+	return unsafe.Slice(raw, size), nil
 }
 
 // PluginDone must be called when OnPluginDone returns false indicating that the plugin is in pending state
@@ -513,7 +513,7 @@ func GetSharedData(key string) (value []byte, cas uint32, err error) {
 	if st != internal.StatusOK {
 		return nil, 0, internal.StatusToError(st)
 	}
-	return internal.RawBytePtrToByteSlice(raw, size), cas, nil
+	return unsafe.Slice(raw, size), cas, nil
 }
 
 // SetSharedData is used for setting key-value pairs in the shared data storage
@@ -572,7 +572,7 @@ func GetProperty(path []string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return internal.RawBytePtrToByteSlice(ret, retSize), nil
+	return unsafe.Slice(ret, retSize), nil
 }
 
 // GetPropertyMap is the same as GetProperty but can be used to decode map-typed properties.
@@ -620,7 +620,7 @@ func CallForeignFunction(funcName string, param []byte) (ret []byte, err error) 
 
 	switch st := internal.ProxyCallForeignFunction(f, int32(len(funcName)), paramPtr, int32(len(param)), unsafe.Pointer(&returnData), &returnSize); st {
 	case internal.StatusOK:
-		return internal.RawBytePtrToByteSlice(returnData, returnSize), nil
+		return unsafe.Slice(returnData, returnSize), nil
 	default:
 		return nil, internal.StatusToError(st)
 	}
@@ -833,7 +833,7 @@ func getMapValue(mapType internal.MapType, key string) (string, error) {
 		return "", internal.StatusToError(st)
 	}
 
-	ret := internal.RawBytePtrToString(raw, rvs)
+	ret := unsafe.String(raw, rvs)
 	return ret, nil
 }
 
@@ -870,7 +870,7 @@ func getMap(mapType internal.MapType) ([][2]string, error) {
 		return nil, types.ErrorStatusNotFound
 	}
 
-	bs := internal.RawBytePtrToByteSlice(raw, rvs)
+	bs := unsafe.Slice(raw, rvs)
 	return internal.DeserializeMap(bs), nil
 }
 
@@ -882,7 +882,7 @@ func getBuffer(bufType internal.BufferType, start, maxSize int) ([]byte, error) 
 		if retData == nil {
 			return nil, types.ErrorStatusNotFound
 		}
-		return internal.RawBytePtrToByteSlice(retData, retSize), nil
+		return unsafe.Slice(retData, retSize), nil
 	default:
 		return nil, internal.StatusToError(st)
 	}

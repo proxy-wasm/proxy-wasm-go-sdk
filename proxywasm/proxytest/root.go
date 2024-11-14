@@ -89,7 +89,7 @@ func newRootHostEmulator(pluginConfiguration, vmConfiguration []byte) *rootHostE
 
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int32) internal.Status {
-	str := internal.RawBytePtrToString(messageData, messageSize)
+	str := unsafe.String(messageData, messageSize)
 
 	log.Printf("proxy_%s_log: %s", logLevel, str)
 	r.logs[logLevel] = append(r.logs[logLevel], str)
@@ -104,7 +104,7 @@ func (r *rootHostEmulator) ProxySetTickPeriodMilliseconds(period uint32) interna
 
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyRegisterSharedQueue(nameData *byte, nameSize int32, returnID *uint32) internal.Status {
-	name := internal.RawBytePtrToString(nameData, nameSize)
+	name := unsafe.String(nameData, nameSize)
 	if id, ok := r.queueNameID[name]; ok {
 		*returnID = id
 		return internal.StatusOK
@@ -143,7 +143,7 @@ func (r *rootHostEmulator) ProxyEnqueueSharedQueue(queueID uint32, valueData *by
 		return internal.StatusNotFound
 	}
 
-	r.queues[queueID] = append(queue, internal.RawBytePtrToByteSlice(valueData, valueSize))
+	r.queues[queueID] = append(queue, unsafe.Slice(valueData, valueSize))
 	internal.ProxyOnQueueReady(PluginContextID, queueID)
 	return internal.StatusOK
 }
@@ -151,7 +151,7 @@ func (r *rootHostEmulator) ProxyEnqueueSharedQueue(queueID uint32, valueData *by
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyGetSharedData(keyData *byte, keySize int32,
 	returnValueData unsafe.Pointer, returnValueSize *int32, returnCas *uint32) internal.Status {
-	key := internal.RawBytePtrToString(keyData, keySize)
+	key := unsafe.String(keyData, keySize)
 
 	value, ok := r.sharedDataKVS[key]
 	if !ok {
@@ -171,8 +171,8 @@ func (r *rootHostEmulator) ProxySetSharedData(keyData *byte, keySize int32,
 	valueData *byte, valueSize int32, cas uint32) internal.Status {
 	// Copy data provided by plugin to keep ownership within host. Otherwise, when
 	// plugin deallocates the memory could be modified.
-	key := strings.Clone(internal.RawBytePtrToString(keyData, keySize))
-	v := internal.RawBytePtrToByteSlice(valueData, valueSize)
+	key := strings.Clone(unsafe.String(keyData, keySize))
+	v := unsafe.Slice(valueData, valueSize)
 	value := make([]byte, len(v))
 	copy(value, v)
 
@@ -197,7 +197,7 @@ func (r *rootHostEmulator) ProxySetSharedData(keyData *byte, keySize int32,
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyDefineMetric(metricType internal.MetricType,
 	metricNameData *byte, metricNameSize int32, returnMetricIDPtr *uint32) internal.Status {
-	name := internal.RawBytePtrToString(metricNameData, metricNameSize)
+	name := unsafe.String(metricNameData, metricNameSize)
 	id, ok := r.metricNameToID[name]
 	if !ok {
 		id = uint32(len(r.metricNameToID))
@@ -243,8 +243,8 @@ func (r *rootHostEmulator) ProxyGetMetric(metricID uint32, returnMetricValue *ui
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyHttpCall(upstreamData *byte, upstreamSize int32, headerData *byte, headerSize int32, bodyData *byte,
 	bodySize int32, trailersData *byte, trailersSize int32, timeout uint32, calloutIDPtr *uint32) internal.Status {
-	upstream := internal.RawBytePtrToString(upstreamData, upstreamSize)
-	body := internal.RawBytePtrToString(bodyData, bodySize)
+	upstream := unsafe.String(upstreamData, upstreamSize)
+	body := unsafe.String(bodyData, bodySize)
 	headers := deserializeRawBytePtrToMap(headerData, headerSize)
 	trailers := deserializeRawBytePtrToMap(trailersData, trailersSize)
 
@@ -275,8 +275,8 @@ func (r *rootHostEmulator) RegisterForeignFunction(name string, f func([]byte) [
 
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyCallForeignFunction(funcNamePtr *byte, funcNameSize int32, paramPtr *byte, paramSize int32, returnData unsafe.Pointer, returnSize *int32) internal.Status {
-	funcName := internal.RawBytePtrToString(funcNamePtr, funcNameSize)
-	param := internal.RawBytePtrToByteSlice(paramPtr, paramSize)
+	funcName := unsafe.String(funcNamePtr, funcNameSize)
+	param := unsafe.Slice(paramPtr, paramSize)
 
 	log.Printf("[foreign call] funcname: %s", funcName)
 	log.Printf("[foreign call] param: %s", param)
@@ -332,7 +332,7 @@ func (r *rootHostEmulator) rootHostEmulatorProxyGetMapValue(mapType internal.Map
 		panic("unimplemented")
 	}
 
-	key := strings.ToLower(internal.RawBytePtrToString(keyData, keySize))
+	key := strings.ToLower(unsafe.String(keyData, keySize))
 
 	for _, h := range hs {
 		if h[0] == key {
