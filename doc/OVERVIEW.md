@@ -10,13 +10,6 @@ This document explains the things you should know when writing programs with thi
 
 **Note that this document assumes that you are using Envoyproxy, and relies on its implementation detail**. Therefore some statement may not apply to other network proxies such as [mosn](https://github.com/mosn).
 
-# TinyGo vs the official Go compiler
-
-This SDK relies on the TinyGo, a compiler implementation of Go programming language specification.
-So first of all, we answer the question "Why not the official Go?".
-As of this writing, the official compiler cannot produce Proxy-Wasm compatible binaries since the exported functions are not supported in the official Go compiler yet.
-Please refer to the [discussion](https://github.com/golang/go/issues/65199), which has already been accepted as a proposal.
-
 # Wasm VM, Plugin and Envoy configuration
 
 ## Terminology
@@ -32,6 +25,10 @@ Please refer to the [discussion](https://github.com/golang/go/issues/65199), whi
 *Wasm Service* is a type of plugins running in a singleton VM (i.e. only one instance exists in the Envoy main thread). It is mainly used for doing some extra work in parallel to Network or Http Filters such as aggregating metrics, logs, etc. Sometimes, such a singleton VM itself is also called *Wasm Service*.
 
 <img src="./images/terminology.png" width="1000">
+
+## Compilation flags
+
+To produce a wasm module compliant with the [Proxy-Wasm spec](https://github.com/proxy-wasm/spec) with the Go compiler, wasm modules must be compiled as [wasi reactors]() with the environment variables `GOOS=wasip1` and `GOARCH=wasm` and the build flag `-buildmode=c-shared`, which creates a wasi reactor in accordance with the [Go feature proposal](https://github.com/golang/go/issues/65199).
 
 ## Envoy configuration
 
@@ -316,18 +313,21 @@ Please refer to [hostcall.go](../proxywasm/hostcall.go) for all the available ho
 
 ## Entrypoint
 
-When Envoy creates VMs, it calls `main` function of your program at startup phase before it tries to create `VMContext` inside VMs. Therefore you must pass your own implementation of `VMContext` in `main` function.
+When a Proxy-Wasm VM compiled with `-buildmode=c-shared` (a WASI reactor) is instantiated, the host will invoke module initializers of your program before calling any exported methods. Therefore you must pass your own implementation of `VMContext` in `init` function.
 
-[proxywasm](../proxywasm) package's `SetVMContext` function is the entrypoint used for that purpose. That being said, your `main` function should look like the following:
+**Note:** per the [Go compiler's documentation](https://pkg.go.dev/cmd/go#hdr-Build_modes), only the main packages can be compiled with `-buildmode=c-shared`. Every `main` package must define `func main()`; however, as with non-wasm c-shared libraries, the `main` function is not called.
+
+[proxywasm](../proxywasm) package's `SetVMContext` function is the entrypoint used for that purpose. A compliant wasi reactor `init` function should look like the following:
 
 ```go
 func main() {
+    // Unused due to -buildmode=c-shared
+}
+func init() {
 	proxywasm.SetVMContext(&myVMContext{})
 }
 
 type myVMContext struct { .... }
-
-var _ types.VMContext = &myVMContext{}
 
 // Implementations follow...
 ```
@@ -444,40 +444,27 @@ Please refer to `main_test.go` files under [examples](../examples) directory for
 
 Here's what users should know when writing plugins with Proxy-Wasm Go SDK and Proxy-Wasm in general.
 
-## Some of existing libraries not available
-
-Some of existing libraries are not available (importable but runtime panic / non-importable). There are several reasons for this:
-1. TinyGo's WASI target does not support some of syscall.
-2. TinyGo does not implement all of reflect package.
-3. [Proxy-Wasm C++ host](https://github.com/proxy-wasm/proxy-wasm-cpp-host) has not supported some of WASI APIs yet 
-4. Some language features are not available in TinyGo or Proxy-Wasm: examples include `recover` and `goroutine`.
-
-These issues will be mitigated as TinyGo and Proxy-Wasm evolve.
-
 ## Performance overhead due to Garbage Collection
 
-There's performance overhead of using Go/TinyGo due to GC, although, optimistically speaking, we could say that the overhead of GC is small enough compared to the other operations in the proxy.
+There is a minor performance overhead of using Go due to GC, although, optimistically speaking, the overhead of GC is small enough compared to the other operations in the proxy. However, as noted in the next section, Go does not support executing wasm code in parallel, so running the garbage collector stops the running program until complete.
 
-Internally, `runtime.GC` is called whenever the heap runs out (see 
-[1](https://tinygo.org/lang-support/#garbage-collection),
-[2](https://github.com/tinygo-org/tinygo/blob/v0.14.1/src/runtime/gc_conservative.go#L218-L239)) in TinyGo.
+By default, `runtime.GC()` is called when the size of freshly allocated data exceeds the size of live data in the heap remaining after the last GC event (see https://tip.golang.org/doc/gc-guide). This can be controlled with the GOGC environment variable or [SetGCPercent](https://pkg.go.dev/runtime/debug#SetGCPercent) function.
 
-TinyGo allows us to disable GC, so theoretically, we can implement our own GC algorithms tailored for Proxy-Wasm through with `-gc=custom` and the build tag `-tags=custommalloc`. 
-For example, create an arena for each context and free the arena when the context is destroyed. However, it is difficult to implement that 
-since internally we need to use global maps (implicitly causes allocation outside the context scope, globally) for saving the Virtual Machine's state (e.g. context id to context implementation mapping).
-So this is not implemented yet, and that is a future TODO.
+The GC can be explicitly run outside of the request path in order to eliminate any added latency. Such execution can be requested by plugin authors by executing the garbage collection in the `OnStreamDone()` (for TCP stream contexts) or `OnHttpStreamDone()` (for HTTP stream contexts) callback, like this: 
 
-## `recover` not implemented
+```go
+func (ctx *httpContext) OnHttpStreamDone() {
+    // Execute garbage collection if live + garbage allocations exceed 8MiB.
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	if ms.Alloc >= 8*1024*1024 { // 8 MiB
+		runtime.GC()
+	}
+}
+```
 
-`recover` is not implemented (https://github.com/tinygo-org/tinygo/issues/891) in TinyGo, and there's no way to prevent the Wasm virtual machine from aborting. Also that means that codes rely on `recover` won't work as expected.
+## Lack of true parallelism for Goroutines
 
-## Goroutine support
+WASI-preview1 does not support parallelism via multithreading; however, Goroutines can be used for concurrency within the scope of an invocation of one of the module's exported functions. For WASI reactors compiled to Go's wasip1 target (such as building with `GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared`), goroutines run in a nonparallel concurrent manner. All goroutines must exit before execution is returned to the host environment, else the scheduler will block (possibly indefinitely) waiting for the goroutines to end.
 
-In TinyGo, Goroutine is implemented through LLVM's coroutine (see [this blog post](https://aykevl.nl/2019/02/tinygo-goroutines)).
-
-In Envoy, Wasm modules are run in the event driven manner, and therefore the "scheduler" is not executed once the main function exits.
-That means you cannot have the expected behavior of Goroutine as in ordinary host environments.
-
-The question "How to deal with Goroutine in a thread local Wasm VM executed in the event drive manner" has yet to be answered.
-
-We strongly recommend that you implement the `OnTick` function for any asynchronous task instead of using Goroutine.
+Asynchronous tasks can be scheduled with by passing a func to `OnTick()`, should the host environment support it.
