@@ -15,7 +15,7 @@ assignees: ''
 
 ## What is the SDK version?
 
-## What is your TinyGo version?
+## What compiler are you using, and what is the version?
 
 ## URL or snippet of your code including Envoy configuration
 
