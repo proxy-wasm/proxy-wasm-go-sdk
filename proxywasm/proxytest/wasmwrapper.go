@@ -18,7 +18,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"reflect"
 	"unsafe"
 
 	"github.com/tetratelabs/wazero"
@@ -288,11 +287,7 @@ func copyBytesToWasm(ctx context.Context, mod api.Module, hostPtr *byte, size in
 	if size == 0 {
 		return
 	}
-	var hostSlice []byte
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&hostSlice))
-	hdr.Data = uintptr(unsafe.Pointer(hostPtr))
-	hdr.Cap = int(size)
-	hdr.Len = int(size)
+	hostSlice := unsafe.Slice(hostPtr, size)
 
 	alloc := mod.ExportedFunction("proxy_on_memory_allocate")
 	res, err := alloc.Call(ctx, uint64(size))

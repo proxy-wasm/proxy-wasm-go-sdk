@@ -1,5 +1,5 @@
 goimports := golang.org/x/tools/cmd/goimports@v0.21.0
-golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
+golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
 
 
 .PHONY: build.example

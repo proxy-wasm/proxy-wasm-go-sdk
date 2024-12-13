@@ -33,10 +33,6 @@ func proxyOnNewConnection(contextID uint32) types.Action {
 	return ctx.OnNewConnection()
 }
 
-func proxyOnDownstreamData_exp(contextID uint32, dataSize int32, endOfStream int32) types.Action {
-	return proxyOnDownstreamData(contextID, dataSize, endOfStream != 0)
-}
-
 //go:wasmexport proxy_on_downstream_data
 func proxyOnDownstreamData(contextID uint32, dataSize int32, endOfStream bool) types.Action {
 	if recordTiming {
