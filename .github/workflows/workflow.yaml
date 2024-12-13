@@ -7,18 +7,15 @@ on:
     branches:
       - main
 
-env:
-  TINYGO_VERSION: 0.32.0
-
 jobs:
   style:
     name: Code style check
     runs-on: ubuntu-latest
     steps:
       - name: install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: 'go1.24rc1'
 
       - name: checkout
         uses: actions/checkout@v3
@@ -34,9 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: 'go1.24rc1'
 
       - name: checkout
         uses: actions/checkout@v3
@@ -82,17 +79,9 @@ jobs:
           key: examples-${{ hashFiles('**/go.mod', '**/go.sum') }}-v${{ env.TINYGO_VERSION }}
 
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
-
-      - name: Install TinyGo
-        run: |
-          gh release download v${TINYGO_VERSION} -p '*.linux-amd64.tar.gz' -D ~ -R github.com/tinygo-org/tinygo
-          tar -xf ~/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz  -C $HOME
-          echo "$HOME/tinygo/bin" >> $GITHUB_PATH
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          go-version: 'go1.24rc1'
 
       - name: Build examples
         run: make build.examples
