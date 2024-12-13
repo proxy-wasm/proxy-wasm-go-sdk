@@ -2,7 +2,6 @@
 
 The Go SDK for
  [Proxy-Wasm](https://github.com/proxy-wasm/spec), enabling developers to write Proxy-Wasm plugins in Go. 
-This SDK is powered by [TinyGo](https://tinygo.org/) and does not support the official Go compiler.
 
 ## Getting Started
 
@@ -11,15 +10,43 @@ This SDK is powered by [TinyGo](https://tinygo.org/) and does not support the of
 
 ## Requirements
 
-- [TinyGo](https://tinygo.org/): v0.32+ - This SDK depends on TinyGo and leverages its [WASI](https://github.com/WebAssembly/WASI) (WebAssembly System Interface) target. Please follow the official instruction [here](https://tinygo.org/getting-started/) for installing TinyGo.
-- [Envoy](https://www.envoyproxy.io) - To run compiled examples, you need to have Envoy binary. We recommend using [func-e](https://func-e.io) as the easiest way to get started with Envoy. Alternatively, you can follow [the official instruction](https://www.envoyproxy.io/docs/envoy/latest/start/install).
-
+- \[Required] [Go](https://go.dev/): v1.24+ - This SDK leverages Go 1.24's support for [WASI](https://github.com/WebAssembly/WASI) (WebAssembly System Interface) reactors. You can grab a release candidate from the [Go unstable releases page](https://go.dev/dl/#unstable).
+- \[Optional] [Envoy](https://www.envoyproxy.io) - To run end-to-end tests, you need to have an Envoy binary. You can use [func-e](https://func-e.io) as an easy way to get started with Envoy or follow [the official instruction](https://www.envoyproxy.io/docs/envoy/latest/start/install).
 
 ## Installation
 
 ```
 go get github.com/tetratelabs/proxy-wasm-go-sdk
 ```
+
+## Minimal Example Plugin
+
+A minimal plugin 
+
+```go
+package main
+
+import (
+	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
+	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+)
+
+func init() {
+        proxywasm.SetVMContext(&vmContext{})
+}
+type vmContext struct {
+        types.DefaultVMContext
+}
+type pluginContext struct {
+        types.DefaultPluginContext
+}
+func (*context) NewPluginContext(contextID uint32) types.PluginContext {
+        return &context{}
+}
+func main() {}
+```
+
+It can be compiled with `env GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o my-plugin.wasm main.go`.
 
 ## Build and run Examples
 
@@ -43,7 +70,7 @@ Please refer to [workflow.yaml](.github/workflows/workflow.yaml) for which versi
 
 ## Build tags
 
-The following build tags can be used to customize the behavior of the built plugin:
+The following build tags can be used to customize the behavior of the built plugin. Build tags [can be specified in the `go build` command via the `-tags` flag](https://pkg.go.dev/cmd/go#:~:text=tags):
 
 - `proxywasm_timing`: Enables logging of time spent in invocation of the plugin's exported functions. This can be useful for debugging performance issues.
 
@@ -57,4 +84,3 @@ We welcome contributions from the community! See [CONTRIBUTING.md](doc/CONTRIBUT
 - [WebAssembly for Proxies (AssemblyScript SDK)](https://github.com/solo-io/proxy-runtime)
 - [WebAssembly for Proxies (C++ SDK)](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk)
 - [WebAssembly for Proxies (Rust SDK)](https://github.com/proxy-wasm/proxy-wasm-rust-sdk)
-- [TinyGo - Go compiler for small places](https://tinygo.org/)
