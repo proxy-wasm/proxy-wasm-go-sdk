@@ -1,6 +1,6 @@
 module github.com/tetratelabs/proxy-wasm-go-sdk/examples/postpone_requests
 
-go 1.19
+go 1.24rc1
 
 replace github.com/tetratelabs/proxy-wasm-go-sdk => ../..
 
