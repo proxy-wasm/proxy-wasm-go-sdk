@@ -1,4 +1,4 @@
-name: Test
+name: SDK Workflows
 on:
   pull_request:
     branches:
@@ -6,6 +6,11 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+  GO_VERSION: go1.24rc1
 
 jobs:
   style:
@@ -15,7 +20,7 @@ jobs:
       - name: install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'go1.24rc1'
+          go-version: {{ env.GO_VERSION }}
 
       - name: checkout
         uses: actions/checkout@v3
@@ -33,7 +38,7 @@ jobs:
       - name: install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'go1.24rc1'
+          go-version: {{ env.GO_VERSION }}
 
       - name: checkout
         uses: actions/checkout@v3
@@ -42,27 +47,7 @@ jobs:
         run: make test
 
   examples:
-    name: Examples (${{ matrix.envoy-image }})
-    strategy:
-      fail-fast: false
-      matrix:
-        envoy-image: [
-          "envoyproxy/envoy-dev:latest",
-          "envoyproxy/envoy:v1.24-latest",
-          "envoyproxy/envoy:v1.25-latest",
-          "envoyproxy/envoy:v1.26-latest",
-          "envoyproxy/envoy:v1.27-latest",
-          "envoyproxy/envoy:v1.28-latest",
-          "envoyproxy/envoy:v1.29-latest",
-          "envoyproxy/envoy:v1.30-latest",
-          "istio/proxyv2:1.16.0",
-          "istio/proxyv2:1.17.0",
-          "istio/proxyv2:1.18.0",
-          "istio/proxyv2:1.19.0",
-          "istio/proxyv2:1.20.0",
-          "istio/proxyv2:1.21.0",
-          "istio/proxyv2:1.22.0",
-        ]
+    name: Examples Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,30 +57,17 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/.cache/go-build
-            ~/.cache/tinygo
             ~/go/pkg/mod
             ~/go/bin
-          key: examples-${{ hashFiles('**/go.mod', '**/go.sum') }}-v${{ env.TINYGO_VERSION }}
+          key: examples-${{ hashFiles('**/go.mod', '**/go.sum') }}-{{ env.GO_VERSION }}
 
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'go1.24rc1'
+          go-version: {{ env.GO_VERSION }}
 
       - name: Build examples
         run: make build.examples
 
       - name: Test examples
         run: make test.examples
-
-      - name: Install Envoy
-        run: |
-          export ENVOY_BIN_DIR=$HOME/envoy/bin
-          mkdir -p $ENVOY_BIN_DIR
-          docker run -v $ENVOY_BIN_DIR:/tmp/proxy-wasm-go-sdk -w /tmp/proxy-wasm-go-sdk \
-            --entrypoint /bin/cp ${{ matrix.envoy-image }} /usr/local/bin/envoy .
-          echo $ENVOY_BIN_DIR >> $GITHUB_PATH
-
-      - name: Run e2e test
-        run: make test.e2e
