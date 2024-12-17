@@ -1,4 +1,4 @@
-# WebAssembly for Proxies (Go SDK) [![Build](https://github.com/tetratelabs/proxy-wasm-go-sdk/workflows/Test/badge.svg)](https://github.com/tetratelabs/proxy-wasm-go-sdk/actions) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+# WebAssembly for Proxies (Go SDK) [![Build](https://github.com/proxy-wasm/proxy-wasm-go-sdk/workflows/Test/badge.svg)](https://github.com/proxy-wasm/proxy-wasm-go-sdk/actions) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 The Go SDK for
  [Proxy-Wasm](https://github.com/proxy-wasm/spec), enabling developers to write Proxy-Wasm plugins in Go. 
@@ -20,7 +20,7 @@ This SDK is based off of github.com/tetratelabs/proxy-wasm-go-sdk; however, it i
 ## Installation
 
 ```
-go get github.com/tetratelabs/proxy-wasm-go-sdk
+go get github.com/proxy-wasm/proxy-wasm-go-sdk
 ```
 
 ## Minimal Example Plugin
@@ -31,8 +31,8 @@ A minimal plugin
 package main
 
 import (
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 func init() {

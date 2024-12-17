@@ -16,7 +16,7 @@
 
 package internal
 
-import "github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+import "github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 
 // this file exists only for proxytest package, therefore, these functions are not included in a resulting Wasm binary.
 

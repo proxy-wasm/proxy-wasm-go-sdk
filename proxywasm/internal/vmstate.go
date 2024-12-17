@@ -15,7 +15,7 @@
 package internal
 
 import (
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 type (
@@ -64,7 +64,7 @@ func (s *state) createPluginContext(contextID uint32) {
 
 	// NOTE: this is a temporary work around for avoiding nil pointer panic
 	// when users make http dispatch(es) on PluginContext.
-	// See https://github.com/tetratelabs/proxy-wasm-go-sdk/issues/110
+	// See https://github.com/proxy-wasm/proxy-wasm-go-sdk/issues/110
 	// TODO: refactor
 	s.contextIDToRootID[contextID] = contextID
 }

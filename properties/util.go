@@ -3,7 +3,7 @@ package properties
 import (
 	"time"
 
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
 )
 
 // getIstioFilterMetadata parses istio filter metadata

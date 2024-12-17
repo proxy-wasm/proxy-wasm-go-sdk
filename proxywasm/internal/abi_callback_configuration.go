@@ -17,7 +17,7 @@ package internal
 import (
 	"time"
 
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 //go:wasmexport proxy_on_vm_start
