@@ -3,6 +3,10 @@
 The Go SDK for
  [Proxy-Wasm](https://github.com/proxy-wasm/spec), enabling developers to write Proxy-Wasm plugins in Go. 
 
+## Project Status
+
+This SDK is based off of github.com/tetratelabs/proxy-wasm-go-sdk; however, it is effectively a new SDK targeting a completely different toolchain. It relies on the not-yet-released Go 1.24 and hasn't seen extensive prod testing by end-users. This SDK is an alpha product.
+
 ## Getting Started
 
 - [examples](examples) directory contains the example codes on top of this SDK.
