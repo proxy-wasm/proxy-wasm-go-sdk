@@ -264,14 +264,14 @@ Let's look at some of these interfaces. First we see `VMContext` is defined as f
 
 ```go
 type VMContext interface {
-	// OnVMStart is called after the VM is created and main function is called.
-	// During this call, GetVMConfiguration hostcall is available and can be used to
-	// retrieve the configuration set at vm_config.configuration.
-	// This is mainly used for doing Wasm VM-wise initialization.
-	OnVMStart(vmConfigurationSize int) OnVMStartStatus
+    // OnVMStart is called after the VM is created and main function is called.
+    // During this call, GetVMConfiguration hostcall is available and can be used to
+    // retrieve the configuration set at vm_config.configuration.
+    // This is mainly used for doing Wasm VM-wise initialization.
+    OnVMStart(vmConfigurationSize int) OnVMStartStatus
 
-	// NewPluginContext is used for creating PluginContext for each plugin configurations.
-	NewPluginContext(contextID uint32) PluginContext
+    // NewPluginContext is used for creating PluginContext for each plugin configurations.
+    NewPluginContext(contextID uint32) PluginContext
 }
 ```
 
@@ -281,21 +281,21 @@ Next is `PluginContext` and it it defined as (here we omit some of the methods f
 
 ```go
 type PluginContext interface {
-	// OnPluginStart is called on all plugin contexts (after OnVmStart if this is the VM context).
-	// During this call, GetPluginConfiguration is available and can be used to
-	// retrieve the configuration set at config.configuration in envoy.yaml
-	OnPluginStart(pluginConfigurationSize int) OnPluginStartStatus
+    // OnPluginStart is called on all plugin contexts (after OnVmStart if this is the VM context).
+    // During this call, GetPluginConfiguration is available and can be used to
+    // retrieve the configuration set at config.configuration in envoy.yaml
+    OnPluginStart(pluginConfigurationSize int) OnPluginStartStatus
 
-	// The following functions are used for creating contexts on streams,
-	// and developers *must* implement either of them corresponding to
-	// extension points. For example, if you configure this plugin context is running
-	// at Http filters, then NewHttpContext must be implemented. Same goes for
-	// Tcp filters.
-	//
-	// NewTcpContext is used for creating TcpContext for each Tcp streams.
-	NewTcpContext(contextID uint32) TcpContext
-	// NewHttpContext is used for creating HttpContext for each Http streams.
-	NewHttpContext(contextID uint32) HttpContext
+    // The following functions are used for creating contexts on streams,
+    // and developers *must* implement either of them corresponding to
+    // extension points. For example, if you configure this plugin context is running
+    // at Http filters, then NewHttpContext must be implemented. Same goes for
+    // Tcp filters.
+    //
+    // NewTcpContext is used for creating TcpContext for each Tcp streams.
+    NewTcpContext(contextID uint32) TcpContext
+    // NewHttpContext is used for creating HttpContext for each Http streams.
+    NewHttpContext(contextID uint32) HttpContext
 }
 ```
 
@@ -324,7 +324,7 @@ func main() {
     // Unused due to -buildmode=c-shared
 }
 func init() {
-	proxywasm.SetVMContext(&myVMContext{})
+    proxywasm.SetVMContext(&myVMContext{})
 }
 
 type myVMContext struct { .... }
