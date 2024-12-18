@@ -28,7 +28,7 @@ This document explains the things you should know when writing programs with thi
 
 ## Compilation flags
 
-To produce a wasm module compliant with the [Proxy-Wasm spec](https://github.com/proxy-wasm/spec) with the Go compiler, wasm modules must be compiled as [wasi reactors]() with the environment variables `GOOS=wasip1` and `GOARCH=wasm` and the build flag `-buildmode=c-shared`, which creates a wasi reactor in accordance with the [Go feature proposal](https://github.com/golang/go/issues/65199).
+To produce a wasm module compliant with the [Proxy-Wasm spec](https://github.com/proxy-wasm/spec) with the Go compiler, wasm modules must be compiled as [wasi reactors](https://github.com/WebAssembly/WASI/blob/main/legacy/application-abi.md) with the environment variables `GOOS=wasip1` and `GOARCH=wasm` and the build flag `-buildmode=c-shared`, which creates a wasi reactor in accordance with the [Go feature proposal](https://github.com/golang/go/issues/65199).
 
 ## Envoy configuration
 
@@ -455,11 +455,11 @@ The GC can be explicitly run outside of the request path in order to eliminate a
 ```go
 func (ctx *httpContext) OnHttpStreamDone() {
     // Execute garbage collection if live + garbage allocations exceed 8MiB.
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	if ms.Alloc >= 8*1024*1024 { // 8 MiB
-		runtime.GC()
-	}
+    var ms runtime.MemStats
+    runtime.ReadMemStats(&ms)
+    if ms.Alloc >= 8*1024*1024 { // 8 MiB
+        runtime.GC()
+    }
 }
 ```
 
@@ -467,4 +467,4 @@ func (ctx *httpContext) OnHttpStreamDone() {
 
 WASI-preview1 does not support parallelism via multithreading; however, Goroutines can be used for concurrency within the scope of an invocation of one of the module's exported functions. For WASI reactors compiled to Go's wasip1 target (such as building with `GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared`), goroutines run in a nonparallel concurrent manner. All goroutines must exit before execution is returned to the host environment, else the scheduler will block (possibly indefinitely) waiting for the goroutines to end.
 
-Asynchronous tasks can be scheduled with by passing a func to `OnTick()`, should the host environment support it.
+Asynchronous tasks can be scheduled by passing a func to `OnTick()`, should the host environment support it.
