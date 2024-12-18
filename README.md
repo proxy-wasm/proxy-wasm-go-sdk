@@ -34,21 +34,21 @@ A minimal plugin:
 package main
 
 import (
-	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
-	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
+    "github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
+    "github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 func init() {
-        proxywasm.SetVMContext(&vmContext{})
+    proxywasm.SetVMContext(&vmContext{})
 }
 type vmContext struct {
-        types.DefaultVMContext
+    types.DefaultVMContext
 }
 type pluginContext struct {
-        types.DefaultPluginContext
+    types.DefaultPluginContext
 }
 func (*context) NewPluginContext(contextID uint32) types.PluginContext {
-        return &context{}
+    return &context{}
 }
 func main() {}
 ```
