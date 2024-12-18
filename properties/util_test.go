@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetPropertyBool(t *testing.T) {

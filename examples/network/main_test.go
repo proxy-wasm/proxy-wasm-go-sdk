@@ -7,10 +7,9 @@ package main
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest"
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNetwork_OnNewConnection(t *testing.T) {

@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal"
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/stretchr/testify/require"
 )
 
 type testPlugin struct {

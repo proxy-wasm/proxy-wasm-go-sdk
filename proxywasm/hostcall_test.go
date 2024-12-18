@@ -18,9 +18,8 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal"
+	"github.com/stretchr/testify/require"
 )
 
 type logHost struct {

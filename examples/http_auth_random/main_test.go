@@ -8,11 +8,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest"
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHttpAuthRandom_OnHttpRequestHeaders(t *testing.T) {

@@ -18,9 +18,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/stretchr/testify/require"
 )
 
 var currentStateMux sync.Mutex

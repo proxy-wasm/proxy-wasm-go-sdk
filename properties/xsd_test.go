@@ -3,9 +3,8 @@ package properties
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetXdsClusterName(t *testing.T) {

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetNodeMetaAnnotations(t *testing.T) {
