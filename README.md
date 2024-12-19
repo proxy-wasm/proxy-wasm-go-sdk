@@ -1,4 +1,4 @@
-# WebAssembly for Proxies (Go SDK) [![Build](https://github.com/proxy-wasm/proxy-wasm-go-sdk/workflows/Test/badge.svg)](https://github.com/proxy-wasm/proxy-wasm-go-sdk/actions) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+# WebAssembly for Proxies (Go SDK) [![Build](https://github.com/proxy-wasm/proxy-wasm-go-sdk/actions/workflows/workflow.yaml/badge.svg)](https://github.com/proxy-wasm/proxy-wasm-go-sdk/actions) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 The Go SDK for [Proxy-Wasm](https://github.com/proxy-wasm/spec), enabling
 developers to write Proxy-Wasm plugins in Go.
