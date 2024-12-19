@@ -16,10 +16,10 @@ package proxywasm
 
 import (
 	"testing"
+	"unsafe"
 
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/internal"
 )
 
 type logHost struct {
@@ -29,8 +29,8 @@ type logHost struct {
 	expLogLevel internal.LogLevel
 }
 
-func (l logHost) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int) internal.Status {
-	actual := internal.RawBytePtrToString(messageData, messageSize)
+func (l logHost) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int32) internal.Status {
+	actual := unsafe.String(messageData, messageSize)
 	require.Equal(l.t, l.expMessage, actual)
 	require.Equal(l.t, l.expLogLevel, logLevel)
 	return internal.StatusOK
@@ -186,8 +186,8 @@ type metricProxyWasmHost struct {
 }
 
 func (m metricProxyWasmHost) ProxyDefineMetric(metricType internal.MetricType,
-	metricNameData *byte, metricNameSize int, returnMetricIDPtr *uint32) internal.Status {
-	name := internal.RawBytePtrToString(metricNameData, metricNameSize)
+	metricNameData *byte, metricNameSize int32, returnMetricIDPtr *uint32) internal.Status {
+	name := unsafe.String(metricNameData, metricNameSize)
 	id, ok := m.nameToID[name]
 	if !ok {
 		id = uint32(len(m.nameToID))

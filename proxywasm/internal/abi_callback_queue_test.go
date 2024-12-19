@@ -17,9 +17,8 @@ package internal
 import (
 	"testing"
 
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 type queueContext struct {

@@ -16,7 +16,7 @@ package internal
 
 import "time"
 
-//export proxy_on_tick
+//go:wasmexport proxy_on_tick
 func proxyOnTick(pluginContextID uint32) {
 	if recordTiming {
 		defer logTiming("proxyOnTick", time.Now())

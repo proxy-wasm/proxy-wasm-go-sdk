@@ -14,9 +14,11 @@
 
 package internal
 
-import "time"
+import (
+	"time"
+)
 
-//export proxy_on_context_create
+//go:wasmexport proxy_on_context_create
 func proxyOnContextCreate(contextID uint32, pluginContextID uint32) {
 	if recordTiming {
 		defer logTiming("proxyOnContextCreate", time.Now())
@@ -30,7 +32,7 @@ func proxyOnContextCreate(contextID uint32, pluginContextID uint32) {
 	}
 }
 
-//export proxy_on_log
+//go:wasmexport proxy_on_log
 func proxyOnLog(contextID uint32) {
 	if recordTiming {
 		defer logTiming("proxyOnLog", time.Now())
@@ -44,7 +46,7 @@ func proxyOnLog(contextID uint32) {
 	}
 }
 
-//export proxy_on_done
+//go:wasmexport proxy_on_done
 func proxyOnDone(contextID uint32) bool {
 	if recordTiming {
 		defer logTiming("proxyOnDone", time.Now())
@@ -56,7 +58,7 @@ func proxyOnDone(contextID uint32) bool {
 	return true
 }
 
-//export proxy_on_delete
+//go:wasmexport proxy_on_delete
 func proxyOnDelete(contextID uint32) {
 	if recordTiming {
 		defer logTiming("proxyOnDelete", time.Now())

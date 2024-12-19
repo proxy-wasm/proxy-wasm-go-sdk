@@ -9,10 +9,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/proxytest"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 func TestProperties_OnHttpRequestHeaders(t *testing.T) {

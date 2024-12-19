@@ -1,12 +1,12 @@
-module github.com/tetratelabs/proxy-wasm-go-sdk/examples/json_validation
+module github.com/proxy-wasm/proxy-wasm-go-sdk/examples/json_validation
 
-go 1.19
+go 1.24rc1
 
-replace github.com/tetratelabs/proxy-wasm-go-sdk => ../..
+replace github.com/proxy-wasm/proxy-wasm-go-sdk => ../..
 
 require (
 	github.com/stretchr/testify v1.9.0
-	github.com/tetratelabs/proxy-wasm-go-sdk v0.16.0
+	github.com/proxy-wasm/proxy-wasm-go-sdk v0.16.0
 	github.com/tidwall/gjson v1.14.1
 )
 

@@ -16,8 +16,8 @@ package internal
 
 import "time"
 
-//export proxy_on_memory_allocate
-func proxyOnMemoryAllocate(size uint) *byte {
+//go:wasmexport proxy_on_memory_allocate
+func proxyOnMemoryAllocate(size uint32) *byte {
 	if recordTiming {
 		defer logTiming("proxyOnMemoryAllocate", time.Now())
 	}

@@ -12,31 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Since the difference of the types in SliceHeader.{Len, Cap} between tinygo and go,
-// we have to have separated functions for converting bytes
-// https://github.com/tinygo-org/tinygo/issues/1284
-
 package internal
 
 import (
-	"reflect"
 	"unsafe"
 )
 
-func RawBytePtrToString(raw *byte, size int) string {
-	//nolint
-	return *(*string)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(raw)),
-		Len:  size,
-		Cap:  size,
-	}))
-}
-
-func RawBytePtrToByteSlice(raw *byte, size int) []byte {
-	//nolint
-	return *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(raw)),
-		Len:  size,
-		Cap:  size,
-	}))
+func StringBytePtr(msg string) *byte {
+	if len(msg) == 0 {
+		return nil
+	}
+	return unsafe.StringData(msg)
 }

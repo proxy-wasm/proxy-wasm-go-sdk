@@ -18,15 +18,13 @@ import (
 	"context"
 	"io"
 	"os"
-	"reflect"
 	"unsafe"
 
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/internal"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 type guestABI struct {
@@ -102,7 +100,10 @@ func NewWasmVMContext(wasm []byte) (WasmVMContext, error) {
 		return nil, err
 	}
 
-	wazeroconfig := wazero.NewModuleConfig().WithStdout(os.Stderr).WithStderr(os.Stderr)
+	wazeroconfig := wazero.NewModuleConfig().
+		WithStartFunctions("_initialize", "_start", "main").
+		WithStdout(os.Stderr).
+		WithStderr(os.Stderr)
 	mod, err := r.InstantiateModule(ctx, compiled, wazeroconfig)
 	if err != nil {
 		return nil, err
@@ -281,15 +282,11 @@ func wasmBytePtr(mod api.Module, off uint32, size uint32) *byte {
 	return &buf[0]
 }
 
-func copyBytesToWasm(ctx context.Context, mod api.Module, hostPtr *byte, size int, wasmPtrPtr uint32, wasmSizePtr uint32) {
+func copyBytesToWasm(ctx context.Context, mod api.Module, hostPtr *byte, size int32, wasmPtrPtr uint32, wasmSizePtr uint32) {
 	if size == 0 {
 		return
 	}
-	var hostSlice []byte
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&hostSlice))
-	hdr.Data = uintptr(unsafe.Pointer(hostPtr))
-	hdr.Cap = size
-	hdr.Len = size
+	hostSlice := unsafe.Slice(hostPtr, size)
 
 	alloc := mod.ExportedFunction("proxy_on_memory_allocate")
 	res, err := alloc.Call(ctx, uint64(size))
@@ -321,7 +318,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithResultNames("call_result").
 		WithFunc(func(ctx context.Context, mod api.Module, logLevel, messageData, messageSize uint32) uint32 {
 			messageDataPtr := wasmBytePtr(mod, messageData, messageSize)
-			return uint32(internal.ProxyLog(internal.LogLevel(logLevel), messageDataPtr, int(messageSize)))
+			return uint32(internal.ProxyLog(internal.LogLevel(logLevel), messageDataPtr, int32(messageSize)))
 		}).
 		Export("proxy_log").
 		// proxy_set_property sets a property value.
@@ -333,7 +330,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, pathData, pathSize, valueData, valueSize uint32) uint32 {
 			pathDataPtr := wasmBytePtr(mod, pathData, pathSize)
 			valueDataPtr := wasmBytePtr(mod, valueData, valueSize)
-			return uint32(internal.ProxySetProperty(pathDataPtr, int(pathSize), valueDataPtr, int(valueSize)))
+			return uint32(internal.ProxySetProperty(pathDataPtr, int32(pathSize), valueDataPtr, int32(valueSize)))
 		}).
 		Export("proxy_set_property").
 		// proxy_get_property gets a property value.
@@ -346,8 +343,8 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			returnValueSize uint32) uint32 {
 			pathDataPtr := wasmBytePtr(mod, pathData, pathSize)
 			var returnValueHostPtr *byte
-			var returnValueSizePtr int
-			ret := uint32(internal.ProxyGetProperty(pathDataPtr, int(pathSize), &returnValueHostPtr, &returnValueSizePtr))
+			var returnValueSizePtr int32
+			ret := uint32(internal.ProxyGetProperty(pathDataPtr, int32(pathSize), unsafe.Pointer(&returnValueHostPtr), &returnValueSizePtr))
 			copyBytesToWasm(ctx, mod, returnValueHostPtr, returnValueSizePtr, returnValueData, returnValueSize)
 			return ret
 		}).
@@ -367,7 +364,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			bodyDataPtr := wasmBytePtr(mod, bodyData, bodySize)
 			headersDataPtr := wasmBytePtr(mod, headersData, headersSize)
 			return uint32(internal.ProxySendLocalResponse(statusCode, statusCodeDetailDataPtr,
-				int(statusCodeDetailsSize), bodyDataPtr, int(bodySize), headersDataPtr, int(headersSize), int32(grpcStatus)))
+				int32(statusCodeDetailsSize), bodyDataPtr, int32(bodySize), headersDataPtr, int32(headersSize), int32(grpcStatus)))
 		}).
 		Export("proxy_send_local_response").
 		// proxy_get_shared_data gets shared data identified by a key. The compare-and-switch value is returned and can
@@ -380,9 +377,9 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			returnCas uint32) uint32 {
 			keyDataPtr := wasmBytePtr(mod, keyData, keySize)
 			var returnValueHostPtr *byte
-			var returnValueSizePtr int
+			var returnValueSizePtr int32
 			var returnCasPtr uint32
-			ret := uint32(internal.ProxyGetSharedData(keyDataPtr, int(keySize), &returnValueHostPtr,
+			ret := uint32(internal.ProxyGetSharedData(keyDataPtr, int32(keySize), unsafe.Pointer(&returnValueHostPtr),
 				&returnValueSizePtr, &returnCasPtr))
 			copyBytesToWasm(ctx, mod, returnValueHostPtr, returnValueSizePtr, returnValueData, returnValueSize)
 			handleMemoryStatus(mod.Memory().WriteUint32Le(returnCas, returnCasPtr))
@@ -398,7 +395,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, keyData, keySize, valueData, valueSize, cas uint32) uint32 {
 			keyDataPtr := wasmBytePtr(mod, keyData, keySize)
 			valueDataPtr := wasmBytePtr(mod, valueData, valueSize)
-			return uint32(internal.ProxySetSharedData(keyDataPtr, int(keySize), valueDataPtr, int(valueSize), cas))
+			return uint32(internal.ProxySetSharedData(keyDataPtr, int32(keySize), valueDataPtr, int32(valueSize), cas))
 		}).
 		Export("proxy_set_shared_data").
 		// proxy_register_shared_queue registers a shared queue using a given name. It can be referred to in
@@ -410,7 +407,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, nameData, nameSize, returnID uint32) uint32 {
 			namePtr := wasmBytePtr(mod, nameData, nameSize)
 			var returnIDPtr uint32
-			ret := uint32(internal.ProxyRegisterSharedQueue(namePtr, int(nameSize), &returnIDPtr))
+			ret := uint32(internal.ProxyRegisterSharedQueue(namePtr, int32(nameSize), &returnIDPtr))
 			handleMemoryStatus(mod.Memory().WriteUint32Le(returnID, returnIDPtr))
 			return ret
 		}).
@@ -427,7 +424,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			vmID := wasmBytePtr(mod, vmIDData, vmIDSize)
 			namePtr := wasmBytePtr(mod, nameData, nameSize)
 			var returnIDPtr uint32
-			ret := uint32(internal.ProxyResolveSharedQueue(vmID, int(vmIDSize), namePtr, int(nameSize), &returnIDPtr))
+			ret := uint32(internal.ProxyResolveSharedQueue(vmID, int32(vmIDSize), namePtr, int32(nameSize), &returnIDPtr))
 			handleMemoryStatus(mod.Memory().WriteUint32Le(returnID, returnIDPtr))
 			return ret
 		}).
@@ -439,8 +436,8 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithResultNames("call_result").
 		WithFunc(func(ctx context.Context, mod api.Module, queueID, returnValueData, returnValueSize uint32) uint32 {
 			var returnValueHostPtr *byte
-			var returnValueSizePtr int
-			ret := uint32(internal.ProxyDequeueSharedQueue(queueID, &returnValueHostPtr, &returnValueSizePtr))
+			var returnValueSizePtr int32
+			ret := uint32(internal.ProxyDequeueSharedQueue(queueID, unsafe.Pointer(&returnValueHostPtr), &returnValueSizePtr))
 			copyBytesToWasm(ctx, mod, returnValueHostPtr, returnValueSizePtr, returnValueData, returnValueSize)
 			return ret
 		}).
@@ -452,7 +449,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithResultNames("call_result").
 		WithFunc(func(ctx context.Context, mod api.Module, queueID, valueData, valueSize uint32) uint32 {
 			valuePtr := wasmBytePtr(mod, valueData, valueSize)
-			return uint32(internal.ProxyEnqueueSharedQueue(queueID, valuePtr, int(valueSize)))
+			return uint32(internal.ProxyEnqueueSharedQueue(queueID, valuePtr, int32(valueSize)))
 		}).
 		Export("proxy_enqueue_shared_queue").
 		// proxy_get_header_map_value gets the content of key from a given map.
@@ -466,8 +463,8 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			returnValueSize uint32) uint32 {
 			keyPtr := wasmBytePtr(mod, keyData, keySize)
 			var retValDataHostPtr *byte
-			var retValSizePtr int
-			ret := uint32(internal.ProxyGetHeaderMapValue(internal.MapType(mapType), keyPtr, int(keySize), &retValDataHostPtr, &retValSizePtr))
+			var retValSizePtr int32
+			ret := uint32(internal.ProxyGetHeaderMapValue(internal.MapType(mapType), keyPtr, int32(keySize), unsafe.Pointer(&retValDataHostPtr), &retValSizePtr))
 			copyBytesToWasm(ctx, mod, retValDataHostPtr, retValSizePtr, returnValueData, returnValueSize)
 			return ret
 		}).
@@ -482,7 +479,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, mapType, keyData, keySize, valueData, valueSize uint32) uint32 {
 			keyPtr := wasmBytePtr(mod, keyData, keySize)
 			valuePtr := wasmBytePtr(mod, valueData, valueSize)
-			return uint32(internal.ProxyAddHeaderMapValue(internal.MapType(mapType), keyPtr, int(keySize), valuePtr, int(valueSize)))
+			return uint32(internal.ProxyAddHeaderMapValue(internal.MapType(mapType), keyPtr, int32(keySize), valuePtr, int32(valueSize)))
 		}).
 		Export("proxy_add_header_map_value").
 		// proxy_replace_header_map_value replaces any value of the key in a given map.
@@ -495,7 +492,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, mapType, keyData, keySize, valueData, valueSize uint32) uint32 {
 			keyPtr := wasmBytePtr(mod, keyData, keySize)
 			valuePtr := wasmBytePtr(mod, valueData, valueSize)
-			return uint32(internal.ProxyReplaceHeaderMapValue(internal.MapType(mapType), keyPtr, int(keySize), valuePtr, int(valueSize)))
+			return uint32(internal.ProxyReplaceHeaderMapValue(internal.MapType(mapType), keyPtr, int32(keySize), valuePtr, int32(valueSize)))
 		}).
 		Export("proxy_replace_header_map_value").
 		// proxy_continue_stream resume processing of paused stream.
@@ -529,7 +526,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithResultNames("call_result").
 		WithFunc(func(ctx context.Context, mod api.Module, mapType, keyData, keySize uint32) uint32 {
 			keyPtr := wasmBytePtr(mod, keyData, keySize)
-			return uint32(internal.ProxyRemoveHeaderMapValue(internal.MapType(mapType), keyPtr, int(keySize)))
+			return uint32(internal.ProxyRemoveHeaderMapValue(internal.MapType(mapType), keyPtr, int32(keySize)))
 		}).
 		Export("proxy_remove_header_map_value").
 		// proxy_get_header_map_pairs gets all key-value pairs from a given map.
@@ -541,8 +538,8 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithResultNames("call_result").
 		WithFunc(func(ctx context.Context, mod api.Module, mapType, returnValueData, returnValueSize uint32) uint32 {
 			var returnValueHostPtr *byte
-			var returnValueSizePtr int
-			ret := uint32(internal.ProxyGetHeaderMapPairs(internal.MapType(mapType), &returnValueHostPtr, &returnValueSizePtr))
+			var returnValueSizePtr int32
+			ret := uint32(internal.ProxyGetHeaderMapPairs(internal.MapType(mapType), unsafe.Pointer(&returnValueHostPtr), &returnValueSizePtr))
 			copyBytesToWasm(ctx, mod, returnValueHostPtr, returnValueSizePtr, returnValueData, returnValueSize)
 			return ret
 		}).
@@ -556,7 +553,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithResultNames("call_result").
 		WithFunc(func(ctx context.Context, mod api.Module, mapType, mapData, mapSize uint32) uint32 {
 			mapPtr := wasmBytePtr(mod, mapData, mapSize)
-			return uint32(internal.ProxySetHeaderMapPairs(internal.MapType(mapType), mapPtr, int(mapSize)))
+			return uint32(internal.ProxySetHeaderMapPairs(internal.MapType(mapType), mapPtr, int32(mapSize)))
 		}).
 		Export("proxy_set_header_map_pairs").
 		// proxy_get_buffer_bytes gets up to max_size bytes from the buffer, starting from offset.
@@ -569,8 +566,8 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, bufferType, start, maxSize, returnBufferData,
 			returnBufferSize uint32) uint32 {
 			var returnBufferDataHostPtr *byte
-			var returnBufferSizePtr int
-			ret := uint32(internal.ProxyGetBufferBytes(internal.BufferType(bufferType), int(start), int(maxSize), &returnBufferDataHostPtr, &returnBufferSizePtr))
+			var returnBufferSizePtr int32
+			ret := uint32(internal.ProxyGetBufferBytes(internal.BufferType(bufferType), int32(start), int32(maxSize), unsafe.Pointer(&returnBufferDataHostPtr), &returnBufferSizePtr))
 			copyBytesToWasm(ctx, mod, returnBufferDataHostPtr, returnBufferSizePtr, returnBufferData, returnBufferSize)
 			return ret
 		}).
@@ -585,7 +582,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 		WithFunc(func(ctx context.Context, mod api.Module, bufferType, start, maxSize, bufferData,
 			bufferSize uint32) uint32 {
 			bufferPtr := wasmBytePtr(mod, bufferData, bufferSize)
-			return uint32(internal.ProxySetBufferBytes(internal.BufferType(bufferType), int(start), int(maxSize), bufferPtr, int(bufferSize)))
+			return uint32(internal.ProxySetBufferBytes(internal.BufferType(bufferType), int32(start), int32(maxSize), bufferPtr, int32(bufferSize)))
 		}).
 		Export("proxy_set_buffer_bytes").
 		// proxy_http_call dispatches an HTTP call to upstream. Once the response is returned to the host,
@@ -605,7 +602,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			bodyPtr := wasmBytePtr(mod, bodyData, bodySize)
 			trailersPtr := wasmBytePtr(mod, trailersData, trailersSize)
 			var calloutID uint32
-			ret := uint32(internal.ProxyHttpCall(upstreamPtr, int(upstreamSize), headerPtr, int(headerSize), bodyPtr, int(bodySize), trailersPtr, int(trailersSize), timeout, &calloutID))
+			ret := uint32(internal.ProxyHttpCall(upstreamPtr, int32(upstreamSize), headerPtr, int32(headerSize), bodyPtr, int32(bodySize), trailersPtr, int32(trailersSize), timeout, &calloutID))
 			handleMemoryStatus(mod.Memory().WriteUint32Le(calloutIDPtr, calloutID))
 
 			// Finishing proxy_http_call executes a callback, not a plugin lifecycle method, unlike every other host function which would then end up in wasm.
@@ -633,8 +630,8 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			funcName := wasmBytePtr(mod, funcNamePtr, funcNameSize)
 			paramHostPtr := wasmBytePtr(mod, paramPtr, paramSize)
 			var returnDataHostPtr *byte
-			var returnDataSizePtr int
-			ret := uint32(internal.ProxyCallForeignFunction(funcName, int(funcNameSize), paramHostPtr, int(paramSize), &returnDataHostPtr, &returnDataSizePtr))
+			var returnDataSizePtr int32
+			ret := uint32(internal.ProxyCallForeignFunction(funcName, int32(funcNameSize), paramHostPtr, int32(paramSize), unsafe.Pointer(&returnDataHostPtr), &returnDataSizePtr))
 			copyBytesToWasm(ctx, mod, returnDataHostPtr, returnDataSizePtr, returnData, returnSize)
 			return ret
 		}).
@@ -683,7 +680,7 @@ func exportHostABI(ctx context.Context, r wazero.Runtime) error {
 			returnMetricIDPtr uint32) uint32 {
 			metricName := wasmBytePtr(mod, metricNameData, metricNameSize)
 			var returnMetricID uint32
-			ret := uint32(internal.ProxyDefineMetric(internal.MetricType(metricType), metricName, int(metricNameSize), &returnMetricID))
+			ret := uint32(internal.ProxyDefineMetric(internal.MetricType(metricType), metricName, int32(metricNameSize), &returnMetricID))
 			handleMemoryStatus(mod.Memory().WriteUint32Le(returnMetricIDPtr, returnMetricID))
 			return ret
 		}).

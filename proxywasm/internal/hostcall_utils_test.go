@@ -15,7 +15,6 @@
 package internal
 
 import (
-	"reflect"
 	"testing"
 	"unsafe"
 
@@ -27,10 +26,6 @@ func Test_StringBytePtr(t *testing.T) {
 	ptr := StringBytePtr(exp)
 
 	//nolint
-	actual := *(*string)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(ptr)),
-		Len:  len(exp),
-		Cap:  len(exp),
-	}))
+	actual := unsafe.String(ptr, len(exp))
 	require.Equal(t, exp, actual)
 }

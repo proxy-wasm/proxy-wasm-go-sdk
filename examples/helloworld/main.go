@@ -18,13 +18,14 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 const tickMilliseconds uint32 = 1000
 
-func main() {
+func main() {}
+func init() {
 	proxywasm.SetVMContext(&vmContext{})
 }
 
@@ -49,8 +50,6 @@ type helloWorld struct {
 
 // OnPluginStart implements types.PluginContext.
 func (ctx *helloWorld) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
-	rand.Seed(time.Now().UnixNano())
-
 	proxywasm.LogInfo("OnPluginStart from Go!")
 	if err := proxywasm.SetTickPeriodMilliSeconds(tickMilliseconds); err != nil {
 		proxywasm.LogCriticalf("failed to set tick period: %v", err)

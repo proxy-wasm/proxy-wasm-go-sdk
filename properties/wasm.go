@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
 )
 
 // This file hosts helper functions to retrieve wasm-related properties as described in:
@@ -145,7 +145,7 @@ func GetNodeLocality() (EnvoyLocality, error) {
 	}
 
 	if successCount == 0 {
-		return result, fmt.Errorf(strings.Join(errors, "; "))
+		return result, fmt.Errorf("%s", strings.Join(errors, "; "))
 	}
 
 	return result, nil

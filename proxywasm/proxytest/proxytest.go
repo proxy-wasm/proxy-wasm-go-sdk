@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"unsafe"
 
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/internal"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 // HostEmulator implements the host side of proxy-wasm. Methods on HostEmulator will either invoke
@@ -188,8 +189,8 @@ func cloneWithLowerCaseMapKeys(m [][2]string) [][2]string {
 	return r
 }
 
-func deserializeRawBytePtrToMap(aw *byte, size int) [][2]string {
-	m := internal.DeserializeMap(internal.RawBytePtrToByteSlice(aw, size))
+func deserializeRawBytePtrToMap(aw *byte, size int32) [][2]string {
+	m := internal.DeserializeMap(unsafe.Slice(aw, size))
 	for _, entry := range m {
 		entry[0] = strings.ToLower(entry[0])
 	}
@@ -203,8 +204,8 @@ func getNextContextID() (ret uint32) {
 }
 
 // impl internal.ProxyWasmHost
-func (h *hostEmulator) ProxyGetBufferBytes(bt internal.BufferType, start int, maxSize int,
-	returnBufferData **byte, returnBufferSize *int) internal.Status {
+func (h *hostEmulator) ProxyGetBufferBytes(bt internal.BufferType, start int32, maxSize int32,
+	returnBufferData unsafe.Pointer, returnBufferSize *int32) internal.Status {
 	switch bt {
 	case internal.BufferTypePluginConfiguration, internal.BufferTypeVMConfiguration, internal.BufferTypeHttpCallResponseBody:
 		return h.rootHostEmulatorProxyGetBufferBytes(bt, start, maxSize, returnBufferData, returnBufferSize)
@@ -217,7 +218,7 @@ func (h *hostEmulator) ProxyGetBufferBytes(bt internal.BufferType, start int, ma
 	}
 }
 
-func (h *hostEmulator) ProxySetBufferBytes(bt internal.BufferType, start int, maxSize int, bufferData *byte, bufferSize int) (ret internal.Status) {
+func (h *hostEmulator) ProxySetBufferBytes(bt internal.BufferType, start int32, maxSize int32, bufferData *byte, bufferSize int32) (ret internal.Status) {
 	switch bt {
 	case internal.BufferTypeHttpRequestBody, internal.BufferTypeHttpResponseBody:
 		ret = h.httpHostEmulatorProxySetBufferBytes(bt, start, maxSize, bufferData, bufferSize)
@@ -229,7 +230,7 @@ func (h *hostEmulator) ProxySetBufferBytes(bt internal.BufferType, start int, ma
 
 // impl internal.ProxyWasmHost
 func (h *hostEmulator) ProxyGetHeaderMapValue(mapType internal.MapType, keyData *byte,
-	keySize int, returnValueData **byte, returnValueSize *int) internal.Status {
+	keySize int32, returnValueData unsafe.Pointer, returnValueSize *int32) internal.Status {
 	switch mapType {
 	case internal.MapTypeHttpRequestHeaders, internal.MapTypeHttpResponseHeaders,
 		internal.MapTypeHttpRequestTrailers, internal.MapTypeHttpResponseTrailers:
@@ -244,8 +245,8 @@ func (h *hostEmulator) ProxyGetHeaderMapValue(mapType internal.MapType, keyData 
 }
 
 // impl internal.ProxyWasmHost
-func (h *hostEmulator) ProxyGetHeaderMapPairs(mapType internal.MapType, returnValueData **byte,
-	returnValueSize *int) internal.Status {
+func (h *hostEmulator) ProxyGetHeaderMapPairs(mapType internal.MapType, returnValueData unsafe.Pointer,
+	returnValueSize *int32) internal.Status {
 	switch mapType {
 	case internal.MapTypeHttpRequestHeaders, internal.MapTypeHttpResponseHeaders,
 		internal.MapTypeHttpRequestTrailers, internal.MapTypeHttpResponseTrailers:
@@ -268,28 +269,28 @@ func (h *hostEmulator) ProxySetEffectiveContext(contextID uint32) internal.Statu
 }
 
 // impl internal.ProxyWasmHost
-func (h *hostEmulator) ProxySetProperty(pathPtr *byte, pathSize int, dataPtr *byte, dataSize int) internal.Status {
-	path := internal.RawBytePtrToString(pathPtr, pathSize)
-	data := internal.RawBytePtrToByteSlice(dataPtr, dataSize)
+func (h *hostEmulator) ProxySetProperty(pathPtr *byte, pathSize int32, dataPtr *byte, dataSize int32) internal.Status {
+	path := unsafe.String(pathPtr, pathSize)
+	data := unsafe.Slice(dataPtr, dataSize)
 	h.properties[path] = data
 	return internal.StatusOK
 }
 
 // impl internal.ProxyWasmHost
-func (h *hostEmulator) ProxyGetProperty(pathPtr *byte, pathSize int, dataPtrPtr **byte, dataSizePtr *int) internal.Status {
-	path := internal.RawBytePtrToString(pathPtr, pathSize)
+func (h *hostEmulator) ProxyGetProperty(pathPtr *byte, pathSize int32, dataPtrPtr unsafe.Pointer, dataSizePtr *int32) internal.Status {
+	path := unsafe.String(pathPtr, pathSize)
 	if _, ok := h.properties[path]; !ok {
 		return internal.StatusNotFound
 	}
 	data := h.properties[path]
-	*dataPtrPtr = &data[0]
-	dataSize := len(data)
+	*(**byte)(dataPtrPtr) = &data[0]
+	dataSize := int32(len(data))
 	*dataSizePtr = dataSize
 	return internal.StatusOK
 }
 
 // impl internal.ProxyWasmHost
-func (h *hostEmulator) ProxyResolveSharedQueue(vmIDData *byte, vmIDSize int, nameData *byte, nameSize int, returnID *uint32) internal.Status {
+func (h *hostEmulator) ProxyResolveSharedQueue(vmIDData *byte, vmIDSize int32, nameData *byte, nameSize int32, returnID *uint32) internal.Status {
 	log.Printf("ProxyResolveSharedQueue not implemented in the host emulator yet")
 	return 0
 }

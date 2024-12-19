@@ -29,5 +29,5 @@ func logTiming(msg string, start time.Time) {
 		panic("BUG: logTiming should not be called when timing is disabled")
 	}
 	f := fmt.Sprintf("%s took %s", msg, time.Since(start))
-	ProxyLog(LogLevelDebug, StringBytePtr(f), len(f))
+	ProxyLog(LogLevelDebug, StringBytePtr(f), int32(len(f)))
 }

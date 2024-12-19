@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"unsafe"
 
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/internal"
-	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal"
+	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
 )
 
 type (
@@ -87,8 +88,8 @@ func newRootHostEmulator(pluginConfiguration, vmConfiguration []byte) *rootHostE
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int) internal.Status {
-	str := internal.RawBytePtrToString(messageData, messageSize)
+func (r *rootHostEmulator) ProxyLog(logLevel internal.LogLevel, messageData *byte, messageSize int32) internal.Status {
+	str := unsafe.String(messageData, messageSize)
 
 	log.Printf("proxy_%s_log: %s", logLevel, str)
 	r.logs[logLevel] = append(r.logs[logLevel], str)
@@ -102,8 +103,8 @@ func (r *rootHostEmulator) ProxySetTickPeriodMilliseconds(period uint32) interna
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyRegisterSharedQueue(nameData *byte, nameSize int, returnID *uint32) internal.Status {
-	name := internal.RawBytePtrToString(nameData, nameSize)
+func (r *rootHostEmulator) ProxyRegisterSharedQueue(nameData *byte, nameSize int32, returnID *uint32) internal.Status {
+	name := unsafe.String(nameData, nameSize)
 	if id, ok := r.queueNameID[name]; ok {
 		*returnID = id
 		return internal.StatusOK
@@ -117,7 +118,7 @@ func (r *rootHostEmulator) ProxyRegisterSharedQueue(nameData *byte, nameSize int
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyDequeueSharedQueue(queueID uint32, returnValueData **byte, returnValueSize *int) internal.Status {
+func (r *rootHostEmulator) ProxyDequeueSharedQueue(queueID uint32, returnValueData unsafe.Pointer, returnValueSize *int32) internal.Status {
 	queue, ok := r.queues[queueID]
 	if !ok {
 		log.Printf("queue %d is not found", queueID)
@@ -128,50 +129,50 @@ func (r *rootHostEmulator) ProxyDequeueSharedQueue(queueID uint32, returnValueDa
 	}
 
 	data := queue[0]
-	*returnValueData = &data[0]
-	*returnValueSize = len(data)
+	*(**byte)(returnValueData) = &data[0]
+	*returnValueSize = int32(len(data))
 	r.queues[queueID] = queue[1:]
 	return internal.StatusOK
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyEnqueueSharedQueue(queueID uint32, valueData *byte, valueSize int) internal.Status {
+func (r *rootHostEmulator) ProxyEnqueueSharedQueue(queueID uint32, valueData *byte, valueSize int32) internal.Status {
 	queue, ok := r.queues[queueID]
 	if !ok {
 		log.Printf("queue %d is not found", queueID)
 		return internal.StatusNotFound
 	}
 
-	r.queues[queueID] = append(queue, internal.RawBytePtrToByteSlice(valueData, valueSize))
+	r.queues[queueID] = append(queue, unsafe.Slice(valueData, valueSize))
 	internal.ProxyOnQueueReady(PluginContextID, queueID)
 	return internal.StatusOK
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyGetSharedData(keyData *byte, keySize int,
-	returnValueData **byte, returnValueSize *int, returnCas *uint32) internal.Status {
-	key := internal.RawBytePtrToString(keyData, keySize)
+func (r *rootHostEmulator) ProxyGetSharedData(keyData *byte, keySize int32,
+	returnValueData unsafe.Pointer, returnValueSize *int32, returnCas *uint32) internal.Status {
+	key := unsafe.String(keyData, keySize)
 
 	value, ok := r.sharedDataKVS[key]
 	if !ok {
 		return internal.StatusNotFound
 	}
 
-	*returnValueSize = len(value.data)
+	*returnValueSize = int32(len(value.data))
 	if len(value.data) > 0 {
-		*returnValueData = &value.data[0]
+		*(**byte)(returnValueData) = &value.data[0]
 	}
 	*returnCas = value.cas
 	return internal.StatusOK
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxySetSharedData(keyData *byte, keySize int,
-	valueData *byte, valueSize int, cas uint32) internal.Status {
+func (r *rootHostEmulator) ProxySetSharedData(keyData *byte, keySize int32,
+	valueData *byte, valueSize int32, cas uint32) internal.Status {
 	// Copy data provided by plugin to keep ownership within host. Otherwise, when
 	// plugin deallocates the memory could be modified.
-	key := strings.Clone(internal.RawBytePtrToString(keyData, keySize))
-	v := internal.RawBytePtrToByteSlice(valueData, valueSize)
+	key := strings.Clone(unsafe.String(keyData, keySize))
+	v := unsafe.Slice(valueData, valueSize)
 	value := make([]byte, len(v))
 	copy(value, v)
 
@@ -195,8 +196,8 @@ func (r *rootHostEmulator) ProxySetSharedData(keyData *byte, keySize int,
 
 // impl internal.ProxyWasmHost
 func (r *rootHostEmulator) ProxyDefineMetric(metricType internal.MetricType,
-	metricNameData *byte, metricNameSize int, returnMetricIDPtr *uint32) internal.Status {
-	name := internal.RawBytePtrToString(metricNameData, metricNameSize)
+	metricNameData *byte, metricNameSize int32, returnMetricIDPtr *uint32) internal.Status {
+	name := unsafe.String(metricNameData, metricNameSize)
 	id, ok := r.metricNameToID[name]
 	if !ok {
 		id = uint32(len(r.metricNameToID))
@@ -240,10 +241,10 @@ func (r *rootHostEmulator) ProxyGetMetric(metricID uint32, returnMetricValue *ui
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyHttpCall(upstreamData *byte, upstreamSize int, headerData *byte, headerSize int, bodyData *byte,
-	bodySize int, trailersData *byte, trailersSize int, timeout uint32, calloutIDPtr *uint32) internal.Status {
-	upstream := internal.RawBytePtrToString(upstreamData, upstreamSize)
-	body := internal.RawBytePtrToString(bodyData, bodySize)
+func (r *rootHostEmulator) ProxyHttpCall(upstreamData *byte, upstreamSize int32, headerData *byte, headerSize int32, bodyData *byte,
+	bodySize int32, trailersData *byte, trailersSize int32, timeout uint32, calloutIDPtr *uint32) internal.Status {
+	upstream := unsafe.String(upstreamData, upstreamSize)
+	body := unsafe.String(bodyData, bodySize)
 	headers := deserializeRawBytePtrToMap(headerData, headerSize)
 	trailers := deserializeRawBytePtrToMap(trailersData, trailersSize)
 
@@ -273,9 +274,9 @@ func (r *rootHostEmulator) RegisterForeignFunction(name string, f func([]byte) [
 }
 
 // impl internal.ProxyWasmHost
-func (r *rootHostEmulator) ProxyCallForeignFunction(funcNamePtr *byte, funcNameSize int, paramPtr *byte, paramSize int, returnData **byte, returnSize *int) internal.Status {
-	funcName := internal.RawBytePtrToString(funcNamePtr, funcNameSize)
-	param := internal.RawBytePtrToByteSlice(paramPtr, paramSize)
+func (r *rootHostEmulator) ProxyCallForeignFunction(funcNamePtr *byte, funcNameSize int32, paramPtr *byte, paramSize int32, returnData unsafe.Pointer, returnSize *int32) internal.Status {
+	funcName := unsafe.String(funcNamePtr, funcNameSize)
+	param := unsafe.Slice(paramPtr, paramSize)
 
 	log.Printf("[foreign call] funcname: %s", funcName)
 	log.Printf("[foreign call] param: %s", param)
@@ -285,14 +286,14 @@ func (r *rootHostEmulator) ProxyCallForeignFunction(funcNamePtr *byte, funcNameS
 		log.Fatalf("%s not registered as a foreign function", funcName)
 	}
 	ret := f(param)
-	*returnData = &ret[0]
-	*returnSize = len(ret)
+	*(**byte)(returnData) = &ret[0]
+	*returnSize = int32(len(ret))
 
 	return internal.StatusOK
 }
 
 // // impl internal.ProxyWasmHost: delegated from hostEmulator
-func (r *rootHostEmulator) rootHostEmulatorProxyGetHeaderMapPairs(mapType internal.MapType, returnValueData **byte, returnValueSize *int) internal.Status {
+func (r *rootHostEmulator) rootHostEmulatorProxyGetHeaderMapPairs(mapType internal.MapType, returnValueData unsafe.Pointer, returnValueSize *int32) internal.Status {
 	res, ok := r.httpCalloutResponse[r.activeCalloutID]
 	if !ok {
 		log.Fatalf("callout response unregistered for %d", r.activeCalloutID)
@@ -308,14 +309,14 @@ func (r *rootHostEmulator) rootHostEmulatorProxyGetHeaderMapPairs(mapType intern
 		panic("unreachable: maybe a bug in this host emulation or SDK")
 	}
 
-	*returnValueData = &raw[0]
-	*returnValueSize = len(raw)
+	*(**byte)(returnValueData) = &raw[0]
+	*returnValueSize = int32(len(raw))
 	return internal.StatusOK
 }
 
 // // impl internal.ProxyWasmHost: delegated from hostEmulator
 func (r *rootHostEmulator) rootHostEmulatorProxyGetMapValue(mapType internal.MapType, keyData *byte,
-	keySize int, returnValueData **byte, returnValueSize *int) internal.Status {
+	keySize int32, returnValueData unsafe.Pointer, returnValueSize *int32) internal.Status {
 	res, ok := r.httpCalloutResponse[r.activeCalloutID]
 	if !ok {
 		log.Fatalf("callout response unregistered for %d", r.activeCalloutID)
@@ -331,13 +332,13 @@ func (r *rootHostEmulator) rootHostEmulatorProxyGetMapValue(mapType internal.Map
 		panic("unimplemented")
 	}
 
-	key := strings.ToLower(internal.RawBytePtrToString(keyData, keySize))
+	key := strings.ToLower(unsafe.String(keyData, keySize))
 
 	for _, h := range hs {
 		if h[0] == key {
 			v := []byte(h[1])
-			*returnValueData = &v[0]
-			*returnValueSize = len(v)
+			*(**byte)(returnValueData) = &v[0]
+			*returnValueSize = int32(len(v))
 			return internal.StatusOK
 		}
 	}
@@ -346,8 +347,8 @@ func (r *rootHostEmulator) rootHostEmulatorProxyGetMapValue(mapType internal.Map
 }
 
 // // impl internal.ProxyWasmHost: delegated from hostEmulator
-func (r *rootHostEmulator) rootHostEmulatorProxyGetBufferBytes(bt internal.BufferType, start int, maxSize int,
-	returnBufferData **byte, returnBufferSize *int) internal.Status {
+func (r *rootHostEmulator) rootHostEmulatorProxyGetBufferBytes(bt internal.BufferType, start int32, maxSize int32,
+	returnBufferData unsafe.Pointer, returnBufferSize *int32) internal.Status {
 	var buf []byte
 	switch bt {
 	case internal.BufferTypePluginConfiguration:
@@ -365,16 +366,17 @@ func (r *rootHostEmulator) rootHostEmulatorProxyGetBufferBytes(bt internal.Buffe
 		panic("unreachable: maybe a bug in this host emulation or SDK")
 	}
 
-	if len(buf) == 0 {
+	bl := int32(len(buf))
+	if bl == 0 {
 		return internal.StatusNotFound
-	} else if start >= len(buf) {
+	} else if start >= bl {
 		log.Printf("start index out of range: %d (start) >= %d ", start, len(buf))
 		return internal.StatusBadArgument
 	}
 
-	*returnBufferData = &buf[start]
-	if maxSize > len(buf)-start {
-		*returnBufferSize = len(buf) - start
+	*(**byte)(returnBufferData) = &buf[start]
+	if maxSize > bl-start {
+		*returnBufferSize = bl - start
 	} else {
 		*returnBufferSize = maxSize
 	}
@@ -438,12 +440,12 @@ func (r *rootHostEmulator) GetCalloutAttributesFromContext(contextID uint32) []H
 
 // impl HostEmulator
 func (r *rootHostEmulator) StartVM() types.OnVMStartStatus {
-	return internal.ProxyOnVMStart(PluginContextID, len(r.vmConfiguration))
+	return internal.ProxyOnVMStart(PluginContextID, int32(len(r.vmConfiguration)))
 }
 
 // impl HostEmulator
 func (r *rootHostEmulator) StartPlugin() types.OnPluginStartStatus {
-	return internal.ProxyOnConfigure(PluginContextID, len(r.pluginConfiguration))
+	return internal.ProxyOnConfigure(PluginContextID, int32(len(r.pluginConfiguration)))
 }
 
 // impl HostEmulator
@@ -460,7 +462,7 @@ func (r *rootHostEmulator) CallOnHttpCallResponse(calloutID uint32, headers, tra
 		delete(r.httpCalloutResponse, calloutID)
 		delete(r.httpCalloutIDToContextID, calloutID)
 	}()
-	internal.ProxyOnHttpCallResponse(PluginContextID, calloutID, len(headers), len(body), len(trailers))
+	internal.ProxyOnHttpCallResponse(PluginContextID, calloutID, int32(len(headers)), int32(len(body)), int32(len(trailers)))
 }
 
 // impl HostEmulator
