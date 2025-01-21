@@ -221,3 +221,7 @@ var (
 	_ TcpContext    = &DefaultTcpContext{}
 	_ HttpContext   = &DefaultHttpContext{}
 )
+
+type PluginContextFactory func(contextID uint32) PluginContext
+type HttpContextFactory func(contextID uint32) HttpContext
+type TcpContextFactory func(contextID uint32) TcpContext

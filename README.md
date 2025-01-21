@@ -59,20 +59,17 @@ import (
 
 func main() {}
 func init() {
-    proxywasm.SetVMContext(&vmContext{})
+    proxywasm.SetHttpContext(func(contextID uint32) types.HttpContext {
+      return &httpContext{}
+    })
 }
-
-type vmContext struct {
-    types.DefaultVMContext
+type httpContext struct {
+    types.DefaultHttpContext
 }
-func (*vmContext) NewPluginContext(contextID uint32) types.PluginContext {
-    return &pluginContext{}
+func (*httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action  {
+    proxywasm.LogInfo("Hello, world!")
+    return types.ActionContinue
 }
-
-type pluginContext struct {
-    types.DefaultPluginContext
-}
-// pluginContext should implement OnPluginStart, NewHttpContext, NewTcpContext, etc
 ```
 
 Compile the plugin as follows:

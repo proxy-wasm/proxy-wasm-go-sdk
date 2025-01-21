@@ -21,30 +21,9 @@ import (
 
 func main() {}
 func init() {
-	proxywasm.SetVMContext(&vmContext{})
-}
-
-// vmContext implements types.VMContext.
-type vmContext struct {
-	// Embed the default VM context here,
-	// so that we don't need to reimplement all the methods.
-	types.DefaultVMContext
-}
-
-// NewPluginContext implements types.VMContext.
-func (*vmContext) NewPluginContext(contextID uint32) types.PluginContext {
-	return &pluginContext{}
-}
-
-type pluginContext struct {
-	// Embed the default plugin context here,
-	// so that we don't need to reimplement all the methods.
-	types.DefaultPluginContext
-}
-
-// NewHttpContext implements types.PluginContext.
-func (*pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
-	return &properties{contextID: contextID}
+	proxywasm.SetHttpContext(func(contextID uint32) types.HttpContext {
+		return &properties{contextID: contextID}
+	})
 }
 
 // properties implements types.HttpContext.

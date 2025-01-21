@@ -170,7 +170,18 @@ func NewHostEmulator(opt *EmulatorOption) (host HostEmulator, reset func()) {
 	release := internal.RegisterMockWasmHost(emulator)
 
 	// set up state
-	proxywasm.SetVMContext(opt.vmContext)
+	switch c := opt.context.(type) {
+	case types.VMContext:
+		proxywasm.SetVMContext(c)
+	case types.PluginContextFactory:
+		proxywasm.SetPluginContext(c)
+	case types.HttpContextFactory:
+		proxywasm.SetHttpContext(c)
+	case types.TcpContextFactory:
+		proxywasm.SetTcpContext(c)
+	default:
+		panic("Unknown context passed to NewHostEmulator.")
+	}
 
 	// create plugin context: TODO: support multiple plugin contexts
 	internal.ProxyOnContextCreate(PluginContextID, 0)

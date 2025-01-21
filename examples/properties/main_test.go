@@ -15,8 +15,8 @@ import (
 )
 
 func TestProperties_OnHttpRequestHeaders(t *testing.T) {
-	vmTest(t, func(t *testing.T, vm types.VMContext) {
-		opt := proxytest.NewEmulatorOption().WithVMContext(vm)
+	vmTest(t, func(t *testing.T, h types.HttpContextFactory) {
+		opt := proxytest.NewEmulatorOption().WithHttpContext(h)
 		host, reset := proxytest.NewHostEmulator(opt)
 		defer reset()
 
@@ -90,11 +90,13 @@ func TestProperties_OnHttpRequestHeaders(t *testing.T) {
 // vmTest executes f twice, once with a types.VMContext that executes plugin code directly
 // in the host, and again by executing the plugin code within the compiled main.wasm binary.
 // Execution with main.wasm will be skipped if the file cannot be found.
-func vmTest(t *testing.T, f func(*testing.T, types.VMContext)) {
+func vmTest(t *testing.T, f func(*testing.T, types.HttpContextFactory)) {
 	t.Helper()
 
 	t.Run("go", func(t *testing.T) {
-		f(t, &vmContext{})
+		f(t, func(contextID uint32) types.HttpContext {
+			return &properties{contextID: contextID}
+		})
 	})
 
 	t.Run("wasm", func(t *testing.T) {
@@ -103,8 +105,9 @@ func vmTest(t *testing.T, f func(*testing.T, types.VMContext)) {
 			t.Skip("wasm not found")
 		}
 		v, err := proxytest.NewWasmVMContext(wasm)
+		p := v.NewPluginContext(1)
 		require.NoError(t, err)
 		defer v.Close()
-		f(t, v)
+		f(t, p.NewHttpContext)
 	})
 }

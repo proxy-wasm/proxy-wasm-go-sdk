@@ -14,8 +14,8 @@ import (
 )
 
 func TestHelloWorld_OnTick(t *testing.T) {
-	vmTest(t, func(t *testing.T, vm types.VMContext) {
-		opt := proxytest.NewEmulatorOption().WithVMContext(vm)
+	vmTest(t, func(t *testing.T, pc types.PluginContextFactory) {
+		opt := proxytest.NewEmulatorOption().WithPluginContext(pc)
 		host, reset := proxytest.NewHostEmulator(opt)
 		defer reset()
 
@@ -33,8 +33,8 @@ func TestHelloWorld_OnTick(t *testing.T) {
 }
 
 func TestHelloWorld_OnPluginStart(t *testing.T) {
-	vmTest(t, func(t *testing.T, vm types.VMContext) {
-		opt := proxytest.NewEmulatorOption().WithVMContext(vm)
+	vmTest(t, func(t *testing.T, pc types.PluginContextFactory) {
+		opt := proxytest.NewEmulatorOption().WithPluginContext(pc)
 		host, reset := proxytest.NewHostEmulator(opt)
 		defer reset()
 
@@ -51,11 +51,11 @@ func TestHelloWorld_OnPluginStart(t *testing.T) {
 // vmTest executes f twice, once with a types.VMContext that executes plugin code directly
 // in the host, and again by executing the plugin code within the compiled main.wasm binary.
 // Execution with main.wasm will be skipped if the file cannot be found.
-func vmTest(t *testing.T, f func(*testing.T, types.VMContext)) {
+func vmTest(t *testing.T, f func(*testing.T, types.PluginContextFactory)) {
 	t.Helper()
 
 	t.Run("go", func(t *testing.T) {
-		f(t, &vmContext{})
+		f(t, func(uint32) types.PluginContext { return &helloWorld{} })
 	})
 
 	t.Run("wasm", func(t *testing.T) {
@@ -66,6 +66,6 @@ func vmTest(t *testing.T, f func(*testing.T, types.VMContext)) {
 		v, err := proxytest.NewWasmVMContext(wasm)
 		require.NoError(t, err)
 		defer v.Close()
-		f(t, v)
+		f(t, v.NewPluginContext)
 	})
 }

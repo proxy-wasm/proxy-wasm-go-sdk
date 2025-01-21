@@ -23,18 +23,39 @@ import (
 type EmulatorOption struct {
 	pluginConfiguration []byte
 	vmConfiguration     []byte
-	vmContext           types.VMContext
+	context             interface{}
 	properties          map[string][]byte
 }
 
 // NewEmulatorOption creates a new EmulatorOption.
 func NewEmulatorOption() *EmulatorOption {
-	return &EmulatorOption{vmContext: &types.DefaultVMContext{}}
+	return &EmulatorOption{context: &types.DefaultVMContext{}}
 }
 
 // WithVMContext sets the VMContext.
 func (o *EmulatorOption) WithVMContext(context types.VMContext) *EmulatorOption {
-	o.vmContext = context
+	o.context = context
+	return o
+}
+
+// WithPluginContext sets up the emulator to use the passed func to construct
+// PluginContexts with an anonymous VMContext.
+func (o *EmulatorOption) WithPluginContext(context types.PluginContextFactory) *EmulatorOption {
+	o.context = context
+	return o
+}
+
+// WithHttpContext sets up the emulator to use the passed func to construct
+// HttpContexts an anonymous VMContext and PluginContext.
+func (o *EmulatorOption) WithHttpContext(context types.HttpContextFactory) *EmulatorOption {
+	o.context = context
+	return o
+}
+
+// WithTcpContext sets up the emulator to use the passed func to construct
+// TcpContexts an anonymous VMContext and PluginContext.
+func (o *EmulatorOption) WithTcpContext(context types.TcpContextFactory) *EmulatorOption {
+	o.context = context
 	return o
 }
 
