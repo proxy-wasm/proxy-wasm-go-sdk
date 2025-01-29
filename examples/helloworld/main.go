@@ -26,19 +26,9 @@ const tickMilliseconds uint32 = 1000
 
 func main() {}
 func init() {
-	proxywasm.SetVMContext(&vmContext{})
-}
-
-// vmContext implements types.VMContext.
-type vmContext struct {
-	// Embed the default VM context here,
-	// so that we don't need to reimplement all the methods.
-	types.DefaultVMContext
-}
-
-// NewPluginContext implements types.VMContext.
-func (*vmContext) NewPluginContext(contextID uint32) types.PluginContext {
-	return &helloWorld{}
+	proxywasm.SetPluginContext(func(contextID uint32) types.PluginContext {
+		return &helloWorld{}
+	})
 }
 
 // helloWorld implements types.PluginContext.
