@@ -59,6 +59,9 @@ import (
 
 func main() {}
 func init() {
+    // Plugin authors can use any one of four entrypoints, such as
+    // `proxywasm.SetVMContext`, `proxywasm.SetPluginContext`, or
+    // `proxywasm.SetTcpContext`.
     proxywasm.SetHttpContext(func(contextID uint32) types.HttpContext {
       return &httpContext{}
     })

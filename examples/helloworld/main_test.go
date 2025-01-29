@@ -48,9 +48,10 @@ func TestHelloWorld_OnPluginStart(t *testing.T) {
 	})
 }
 
-// vmTest executes f twice, once with a types.VMContext that executes plugin code directly
-// in the host, and again by executing the plugin code within the compiled main.wasm binary.
-// Execution with main.wasm will be skipped if the file cannot be found.
+// vmTest executes f twice, once with a types.PluginContextFactory that
+// executes plugin code directly in the host, and again by executing the plugin
+// code within the compiled main.wasm binary. Execution with main.wasm will be
+// skipped if the file cannot be found.
 func vmTest(t *testing.T, f func(*testing.T, types.PluginContextFactory)) {
 	t.Helper()
 
