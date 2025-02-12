@@ -25,15 +25,12 @@ end-users. This SDK is an alpha product.
 
 -   \[Required] [Go](https://go.dev/): v1.24+ - This SDK leverages Go 1.24's
     support for [WASI](https://github.com/WebAssembly/WASI) (WebAssembly System
-    Interface) reactors. You can grab a release candidate from the
-    [Go unstable releases page](https://go.dev/dl/#unstable). A stable release
-    of Go 1.24 is
-    [expected in February 2025](https://tip.golang.org/doc/go1.24).
--   \[Required] A host environment supporting this toolchain - This SDK
-    leverages additional host imports added to the proxy-wasm-cpp-host in
-    [PR#427](https://github.com/proxy-wasm/proxy-wasm-cpp-host/pull/427). This
-    has yet to be merged, let alone make its way downstream to Envoy, ATS,
-    nginx, or managed environments.
+    Interface) reactors. You can install a suitable version from the
+    [Go installation guide](https://go.dev/doc/install).
+-   \[Required] A host environment supporting this toolchain, such as Envoy >=
+    1.33.0. This SDK leverages additional host imports added to the
+    proxy-wasm-cpp-host in
+    [PR#427](https://github.com/proxy-wasm/proxy-wasm-cpp-host/pull/427).
 -   \[Optional] [Envoy](https://www.envoyproxy.io) - To run end-to-end tests,
     you need to have an Envoy binary. You can use [func-e](https://func-e.io) as
     an easy way to get started with Envoy or follow

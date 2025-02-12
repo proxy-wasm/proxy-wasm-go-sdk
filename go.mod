@@ -1,6 +1,6 @@
 module github.com/proxy-wasm/proxy-wasm-go-sdk
 
-go 1.24rc1
+go 1.24
 
 require (
 	github.com/stretchr/testify v1.9.0
