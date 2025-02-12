@@ -1,6 +1,6 @@
 module github.com/proxy-wasm/proxy-wasm-go-sdk/examples/shared_queue
 
-go 1.24rc1
+go 1.24
 
 replace github.com/proxy-wasm/proxy-wasm-go-sdk => ../..
 
