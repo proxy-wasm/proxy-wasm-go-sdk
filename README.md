@@ -10,9 +10,10 @@ targets the TinyGo compiler.
 ## Project Status
 
 This SDK is based off of github.com/tetratelabs/proxy-wasm-go-sdk; however, it
-is effectively a new SDK targeting a completely different toolchain. It relies
-on the not-yet-released Go 1.24 and hasn't seen extensive prod testing by
-end-users. This SDK is an alpha product.
+is effectively a new SDK targeting a completely different toolchain. This SDK
+relies on the new WASI Reactors support in Go 1.24. It's been tested and used
+in production by customers on Google Cloud Platform's Service Extensions
+platform, so give it a whirl!
 
 ## Getting Started
 
